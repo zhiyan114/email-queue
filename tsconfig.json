@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "allowJs": true,
+        "module": "CommonJS",
+        "target": "ESNext",
+        "strict": true,
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "noEmit": true
+    },
+    "exclude": [
+        "build.js",
+        "./dist",
+        "__tests__",
+        "**/*.spec.ts",
+        "jest.config.js",
+        "./eslint.config.mjs"
+    ],
+}
