@@ -3,11 +3,15 @@ CREATE TABLE authKey (
   code varchar(36) unique NOT NULL,
   ban text
 );
-
 CREATE TABLE requests (
   id serial primary key,
   key_id int NOT NULL,
-  request json NOT NULL,
+  mail_from text NOT NULL,
+  mail_to text not NULL,
+  mail_subject text not NULL,
+  mail_text text,
+  mail_html text,
   fulfilled timestamp,
-  FOREIGN KEY(key_id) REFERENCES authKey(id)
+  FOREIGN KEY(key_id) REFERENCES authKey(id),
+  check(num_nonnulls(mail_text, mail_html) = 1)
 );
