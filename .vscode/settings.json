@@ -1,0 +1,5 @@
+{
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "docker.languageserver.formatter.ignoreMultilineInstructions": false,
+    "editor.tabSize": 2
+}
