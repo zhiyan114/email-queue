@@ -50,10 +50,10 @@ const out = esbuild.buildSync({
 if(out.errors.length > 0)
   console.error(`Build Failed: ${JSON.stringify(out.errors)}`);
 
-// Copy over minified config.json
-const origin_config = fs.readFileSync(path.join(basePath, "config.json"));
-const minify_config = JSON.stringify(JSON.parse(origin_config));
-fs.writeFileSync(path.join("dist", "config.json"), minify_config);
+// // Copy over minified config.json
+// const origin_config = fs.readFileSync(path.join(basePath, "config.json"));
+// const minify_config = JSON.stringify(JSON.parse(origin_config));
+// fs.writeFileSync(path.join("dist", "config.json"), minify_config);
 
 const end = Date.now();
 
@@ -64,7 +64,7 @@ let sizeUnitIndex = 0;
 if(out.metafile?.outputs)
   for (const file of Object.keys(out.metafile.outputs))
     buildSize += out.metafile.outputs[file].bytes;
-buildSize += minify_config.length;
+// buildSize += minify_config.length;
 while (buildSize > 1024) {
   buildSize /= 1024;
   sizeUnitIndex++;
