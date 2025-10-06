@@ -12,8 +12,10 @@
     "@types/amqplib": "^0.10.7",
     "@types/node": "^24.6.2",
     "@types/nodemailer": "^7.0.2",
+    "@types/pg": "^8.15.5",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
+    "amqplib": "^0.10.9",
     "esbuild": "^0.25.10",
     "eslint": "^9.37.0",
     "rimraf": "^6.0.1",
@@ -21,9 +23,10 @@
   },
   "dependencies": {
     "@sentry/node-core": "^10.17.0",
-    "amqplib": "^0.10.9",
+    "amqp-connection-manager": "^5.0.0",
     "express": "^5.1.0",
     "node-cron": "^4.2.1",
-    "nodemailer": "^7.0.7"
+    "nodemailer": "^7.0.7",
+    "pg": "^8.16.3"
   }
 }
