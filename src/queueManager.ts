@@ -39,6 +39,8 @@ export class QueueManager {
       setup: async (ch: Channel) => await ch.assertQueue(this.queueName, { durable: true })
     });
 
+    // Consumer Threads
+
     // Events
     this.amqpCli.on('connect', async() => {
       // Requeue missing request during AMQP downtime
@@ -75,8 +77,13 @@ export class QueueManager {
     this.sendCh?.sendToQueue(this.queueName, res.rows[0].id);
   }
 
-  // Multithreaded Queue Consumer
+  // Handler to process SMTP mail transport
   private workerQueue() {
+
+  }
+
+  // Handler to (cron) requeue failed job
+  private queueFailJob() {
 
   }
 
