@@ -2,9 +2,10 @@ import { createTransport, type Transporter } from "nodemailer";
 import { type Channel, type ChannelWrapper, connect } from "amqp-connection-manager";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { type IAmqpConnectionManager } from "amqp-connection-manager/dist/types/AmqpConnectionManager";
-import { logger } from "@sentry/node-core";
+import { logger, cron } from "@sentry/node-core";
 import type { sendMailOpt, requestsTable } from "./Types";
 import type { Client } from "pg";
+import nCron from "node-cron";
 
 
 
@@ -39,9 +40,14 @@ export class QueueManager {
       setup: async (ch: Channel) => await ch.assertQueue(this.queueName, { durable: true })
     });
 
-    // Consumer Threads
+    /* Consumer Threads */
 
-    // Events
+    /* Cron Jobs */
+
+    // Retry failed email job ever 1 hour
+    cron.instrumentNodeCron(nCron).schedule("0 * * * *", this.queueFailJob.bind(this), { name: "ReQueueFailTask" });
+
+    /* Events */
     this.amqpCli.on('connect', async() => {
       // Requeue missing request during AMQP downtime
       await this.sendCh?.waitForConnect();
@@ -72,9 +78,7 @@ export class QueueManager {
     ]);
 
     // Item to queue
-    if(!this.amqpCli?.isConnected())
-      return this.tempStorage.push(res.rows[0].id);
-    this.sendCh?.sendToQueue(this.queueName, res.rows[0].id);
+    this.enque(res.rows[0].id);
   }
 
   // Handler to process SMTP mail transport
@@ -83,8 +87,20 @@ export class QueueManager {
   }
 
   // Handler to (cron) requeue failed job
-  private queueFailJob() {
+  private async queueFailJob() {
+    const res = await this.pgClient.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
+    if(res.rowCount === 0)
+      return;
 
+    for(const item of res.rows)
+      this.enque(item.id);
+  }
+
+  // Actually queue the item
+  private enque(id: number) {
+    if(!this.amqpCli?.isConnected())
+      return this.tempStorage.push(id);
+    this.sendCh?.sendToQueue(this.queueName, id);
   }
 
   // Ensures setup is called for required method
