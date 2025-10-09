@@ -25,7 +25,7 @@ function getAllFilesInFolder(folderPath) {
 }
 
 // Get Commit Hash (using git)
-const commitHash = cProcess
+const commitHash = process.env["RAILWAY_GIT_COMMIT_SHA"] ?? cProcess
   .execSync('git rev-parse HEAD')
   .toString()
   .trim();
