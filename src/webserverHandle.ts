@@ -2,19 +2,23 @@ import type { Client } from "pg";
 import type { QueueManager } from "./queueManager";
 import type { NextFunction, Express, Request, Response } from "express";
 import type { authKeysTable } from "./Types";
-import ExpressInit from "express";
+import ExpressInit, { json } from "express";
 import { captureException, logger } from "@sentry/node-core";
 
 type requestType = {
-  from: string,
-  to: string,
+  from?: string,
+  to: string | string[],
   subject: string,
   text?: string,
   html?: string,
 }
 
 type responseType = {
-  success: boolean,
+  success: true,
+  reqID: string,
+  message: string,
+} | {
+  success: false,
   message: string,
 }
 
@@ -36,7 +40,9 @@ export class WebSrvManager {
   setup(port: number) {
     /* Setup Routes */
     this.express.route("/requests")
+      .all(json({ strict: true }))
       .all(this.authMiddleMan)
+      // .get(this.checkItemStatus) // Future Implementation: Ability to check specific item's queue status AND lastError Reason
       .post(this.SubmitQueue);
 
 
@@ -49,8 +55,57 @@ export class WebSrvManager {
     });
   }
 
-  private async SubmitQueue(req: Request, res: Response) {
+  private async SubmitQueue(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>) {
+    // Request Validation
+    const senderAddr = process.env["SENDER_ADDR"];
+    if(!req.body.from && senderAddr === null) {
+      logger.warn("Key %d request missing sender's name when ENV (SENDER_ADDR) is null/empty", [res.locals.userID]);
+      return res.status(422).json({
+        success: false,
+        message: "Server does not have configured fix address and requires 'from' field to be sent!"
+      });
+    }
 
+    if(!req.body.subject) {
+      logger.warn("Key %d request missing subject", [res.locals.userID]);
+      return res.status(422).json({
+        success: false,
+        message: "Missing subject field. For higher deliverability, this is required!"
+      });
+    }
+
+    if(!req.body.text && !req.body.html) {
+      logger.warn("Key %d request missing text/html email body", [res.locals.userID]);
+      return res.status(422).json({
+        success: false,
+        message: "You need at least one body content type (text or html) :'("
+      });
+    }
+
+    if(req.body.text && req.body.html) {
+      logger.warn("Key %d request contains both text/html email body", [res.locals.userID]);
+      return res.status(422).json({
+        success: false,
+        message: "You cant have both text and html body, which one am I suppose to use?? >:{"
+      });
+    }
+
+    // Assuming it's formatted 'Name <email@address.local>', we'll only pull the Name part out
+
+    const fromName = req.body.from?.split("<")[0].trim() ?? "noreply";
+    const fromSender = senderAddr ? `${fromName} <${senderAddr}>` : req.body.from;
+
+    // Format Recipient data if the given req is string
+    const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
+
+    for(const recipient of recipients)
+      this.queueMGR.queueMail(res.locals.userID, {
+        from: fromSender!,
+        to: recipient,
+        subject: req.body.subject,
+        text: req.body.text,
+        html: req.body.text
+      });
   }
 
   private async authMiddleMan(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>, next: NextFunction) {
