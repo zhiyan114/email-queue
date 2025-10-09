@@ -14,6 +14,25 @@ paths:
       summary: Submit an email request to queue
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                from:
+                  type: string
+                to:
+                  type: array
+                  items:
+                    type: string
+                subject:
+                  type: string
+                text:
+                  type: string
+                html:
+                  type: string
       responses:
         '200':
           description: Successful request

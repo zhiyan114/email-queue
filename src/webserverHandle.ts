@@ -40,6 +40,9 @@ export class WebSrvManager {
 
   setup(port: number) {
     /* Setup Routes */
+    this.express.route("/")
+      .get(this.Index);
+
     this.express.route("/requests")
       .all(json({ strict: true }))
       .all(this.authMiddleMan)
@@ -57,6 +60,10 @@ export class WebSrvManager {
       }
       logger.info("Web server started normally");
     });
+  }
+
+  private async Index(req: Request, res: Response) {
+    return res.status(200).send("Hello :3");
   }
 
   private async SubmitQueue(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>) {
