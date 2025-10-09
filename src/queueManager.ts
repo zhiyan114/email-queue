@@ -42,7 +42,7 @@ export class QueueManager {
     /* Cron Jobs */
 
     // Retry failed email job ever 1 hour
-    cron.instrumentNodeCron(nCron).schedule("0 * * * *", this.queueFailJob.bind(this), { name: "ReQueueFailMail" });
+    cron.instrumentNodeCron(nCron).schedule("0 * * * *", this.queueFailJob.bind(this), { name: "requeue-failed-jobs" });
 
     /* Events */
 

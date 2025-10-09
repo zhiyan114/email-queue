@@ -24,7 +24,7 @@ paths:
                 properties:
                   reqID:
                     type: integer
-                    example: 123456
+                    example: 00000000-0000-0000-0000-000000000000
                   success:
                     type: boolean
                     default: true
