@@ -6,11 +6,16 @@ import ExpressInit from "express";
 import { captureException, logger } from "@sentry/node-core";
 
 type requestType = {
-
+  from: string,
+  to: string,
+  subject: string,
+  text?: string,
+  html?: string,
 }
 
 type responseType = {
-
+  success: boolean,
+  message: string,
 }
 
 type localPassType = {
@@ -48,7 +53,7 @@ export class WebSrvManager {
 
   }
 
-  private async authMiddleMan(req: Request<null,requestType>, res: Response<responseType, localPassType>, next: NextFunction) {
+  private async authMiddleMan(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>, next: NextFunction) {
     const tokenHead = req.headers["authorization"]?.split(" ");
 
     if(!tokenHead || tokenHead.length !== 2) {
