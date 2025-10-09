@@ -16,11 +16,12 @@ export type mailResType = {
 }
 
 export class MailService {
-  private baseUrl = "";
+  private baseUrl = "https://api.mail.zhiyan114.com";
   private apiKey: string;
-  constructor(baseUrl: string, apiKey: string) {
+  constructor(apiKey: string, baseUrl?: string) {
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    if(baseUrl)
+      this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   }
 
   async sendMail(opt: sendMailOpt): Promise<mailResType> {

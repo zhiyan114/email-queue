@@ -132,6 +132,12 @@ export class WebSrvManager {
       return res.status(401).send("Unauthorized >:{");
     }
 
+    const banRes = QRes.rows[0].ban;
+    if(banRes) {
+      logger.warn("Attempt to access service with banned token: $s", [tokenKey]);
+      return res.status(403).send(`You've been banned from accessing service: ${banRes}`);
+    }
+
     // Pass information and complete the request
     res.locals.userID = QRes.rows[0].id;
     next();
