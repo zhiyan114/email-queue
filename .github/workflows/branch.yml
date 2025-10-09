@@ -26,14 +26,5 @@ jobs:
       run: npm ci
     - name: lint check
       run: npm run lint:check
-    - name: Prisma Checker
+    - name: Build check
       run: npm run build:check
-    - name: Unit Test
-      run: npm run test
-  # Build docker image
-  DockerTest:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker compose build

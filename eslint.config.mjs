@@ -22,7 +22,8 @@ export default defineConfig([globalIgnores([
   "**/build.js",
   "**/*.spec.ts",
   "jest.config.js",
-  "eslint.config.mjs"
+  "eslint.config.mjs",
+  "**/SDK/"
 ]), {
   extends: compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended"),
 

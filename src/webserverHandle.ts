@@ -139,7 +139,7 @@ export class WebSrvManager {
     const tokenType = tokenHead[0].toLowerCase();
     const tokenKey = tokenHead[1].toLowerCase();
 
-    if(tokenType !== "Bearer") {
+    if(tokenType !== "bearer") {
       logger.warn("Attempt to access service with invalid token prefix");
       return res.status(401).send("Forgot the 'Bearer' key type :/");
     }
