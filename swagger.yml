@@ -1,0 +1,72 @@
+openapi: '3.1.0'
+info:
+  title: MailService
+  version: '1.0.0'
+  description: MailService REST endpoints
+  contact:
+    email: uwu@zhiyan114.com
+    url: https://github.com/zhiyan114/email-queue
+servers:
+  - url: https://api.mail.zhiyan114.com
+paths:
+  /requests:
+    post:
+      summary: Submit an email request to queue
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  message:
+                    type: string
+                    default: "Unauthorized >:{"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  message:
+                    type: string
+                    default: "You've been banned from accessing service: {reason}"
+        '422':
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  message:
+                    type: string
+                    default: "Server does not have configured fix address and requires 'from' field to be sent!"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
