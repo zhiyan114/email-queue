@@ -9,14 +9,6 @@ import nCron from "node-cron";
 import { type ConsumeMessage } from "amqplib";
 
 
-
-
-/*
-@TODO:
-- Handle closed AMQP connection and queue content into tempStorage until connection is up
-- Handle publish/consumer channel status as well to determine if re-initialization for those
-*/
-
 export class QueueManager {
   private queueName: string;
   private mailTransport?: Transporter<SMTPTransport.SentMessageInfo>;
