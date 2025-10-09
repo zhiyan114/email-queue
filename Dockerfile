@@ -45,6 +45,7 @@ RUN scripts/preHook.sh
 
 # Build the source
 COPY src/ ./src/
+COPY public ./public/
 COPY build.js ./build.js
 RUN npm run build
 
