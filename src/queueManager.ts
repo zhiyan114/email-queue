@@ -77,6 +77,7 @@ export class QueueManager {
 
     // Item to queue
     this.enque(res.rows[0].id);
+    return res;
   }
 
   // Handler to process SMTP mail transport

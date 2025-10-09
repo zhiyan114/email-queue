@@ -22,9 +22,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  reqID:
+                    type: integer
+                    example: 123456
                   success:
                     type: boolean
                     default: true
+                  message:
+                    type: string
+                    default: "Email successfully queued!"
+                  
         '401':
           description: Unauthorized
           content:

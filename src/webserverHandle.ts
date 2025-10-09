@@ -98,14 +98,22 @@ export class WebSrvManager {
     // Format Recipient data if the given req is string
     const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
 
+    const reqID: string[] = [];
     for(const recipient of recipients)
-      this.queueMGR.queueMail(res.locals.userID, {
+      reqID.push((await this.queueMGR.queueMail(res.locals.userID, {
         from: fromSender!,
         to: recipient,
         subject: req.body.subject,
         text: req.body.text,
         html: req.body.text
-      });
+      })).rows[0].id.toString());
+
+    logger.info("Key %d successfully queued email to %d recipients Req ID: %s", [res.locals.userID, recipients.length, reqID.join(",")]);
+    return res.status(200).json({
+      success: true,
+      reqID: reqID.join(","),
+      message: "Email successfully queued!"
+    });
   }
 
   private async authMiddleMan(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>, next: NextFunction) {
