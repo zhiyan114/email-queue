@@ -45,9 +45,9 @@ export class WebSrvManager {
 
     this.express.route("/requests")
       .all(json({ strict: true }))
-      .all(this.authMiddleMan)
+      .all(this.authMiddleMan.bind(this))
       // .get(this.checkItemStatus) // Future Implementation: Ability to check specific item's queue status AND lastError Reason
-      .post(this.SubmitQueue);
+      .post(this.SubmitQueue.bind(this));
 
     this.express.use("/public", fstatic("public"));
 
