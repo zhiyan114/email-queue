@@ -1,6 +1,7 @@
 import type { Client } from "pg";
 import type { QueueManager } from "./queueManager";
 import type { NextFunction, Express, Request, Response } from "express";
+import type { authKeysTable } from "./Types";
 import ExpressInit from "express";
 import { captureException, logger } from "@sentry/node-core";
 
@@ -12,8 +13,8 @@ type responseType = {
 
 }
 
-type paramPassThrType = {
-  id: number
+type localPassType = {
+  userID: number
 }
 
 export class WebSrvManager {
@@ -47,7 +48,7 @@ export class WebSrvManager {
 
   }
 
-  private async authMiddleMan(req: Request<null,requestType, responseType, null, paramPassThrType>, res: Response, next: NextFunction) {
+  private async authMiddleMan(req: Request<null,requestType>, res: Response<responseType, localPassType>, next: NextFunction) {
     const tokenHead = req.headers["authorization"]?.split(" ");
 
     if(!tokenHead || tokenHead.length !== 2) {
@@ -63,5 +64,16 @@ export class WebSrvManager {
       logger.warn("Attempt to access service with invalid token prefix");
       return res.status(401).send("Forgot the 'Bearer' key type :/");
     }
+
+    // Check Authorization DB
+    const QRes = await this.pgClient.query<authKeysTable>("SELECT * from authKeys WHERE code=$1", [tokenKey]);
+    if(QRes.rows.length === 0) {
+      logger.warn("Attempt to access service with invalid token: $s", [tokenKey]);
+      return res.status(401).send("Unauthorized >:{");
+    }
+
+    // Pass information and complete the request
+    res.locals.userID = QRes.rows[0].id;
+    next();
   }
 }

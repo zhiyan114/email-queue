@@ -6,8 +6,9 @@ export type sendMailOpt = {
   html?: string;
 }
 
-export type authKeyTable = {
+export type authKeysTable = {
   id: number,
+  label?: string,
   code: string,
   ban?: string,
 }

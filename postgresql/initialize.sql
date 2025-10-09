@@ -1,5 +1,6 @@
-CREATE TABLE authKey (
+CREATE TABLE authKeys (
   id serial primary key,
+  label varchar(100),
   code varchar(36) unique NOT NULL,
   ban text
 );
