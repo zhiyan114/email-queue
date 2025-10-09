@@ -2,7 +2,7 @@ import type { Client } from "pg";
 import type { QueueManager } from "./queueManager";
 import type { NextFunction, Express, Request, Response } from "express";
 import type { authKeysTable } from "./Types";
-import ExpressInit, { json } from "express";
+import ExpressInit, { json, static as fstatic } from "express";
 import { captureException, logger } from "@sentry/node-core";
 import { randomUUID } from "crypto";
 
@@ -45,6 +45,8 @@ export class WebSrvManager {
       .all(this.authMiddleMan)
       // .get(this.checkItemStatus) // Future Implementation: Ability to check specific item's queue status AND lastError Reason
       .post(this.SubmitQueue);
+
+    this.express.use("/public", fstatic("public"));
 
 
     this.express.listen(port, (err)=> {

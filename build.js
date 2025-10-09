@@ -43,17 +43,15 @@ const out = esbuild.buildSync({
   packages: "external",
   sourcemap: true,
   metafile: true,
-  banner: { js: `/* 2022-${start.getFullYear()} © zhiyan114 GPLv3 OwO | Build: ${process.env["ENVIRONMENT"] ?? "????"}-${commitHash.substring(0,7)} */` },
+  banner: { js: `/* 2025-${start.getFullYear()} © zhiyan114 MIT OwO | Build: ${process.env["ENVIRONMENT"] ?? "????"}-${commitHash.substring(0,7)} */` },
   outdir: "dist",
 });
 
 if(out.errors.length > 0)
   console.error(`Build Failed: ${JSON.stringify(out.errors)}`);
 
-// // Copy over minified config.json
-// const origin_config = fs.readFileSync(path.join(basePath, "config.json"));
-// const minify_config = JSON.stringify(JSON.parse(origin_config));
-// fs.writeFileSync(path.join("dist", "config.json"), minify_config);
+// Copy over public folder
+fs.cpSync("public", "dist/public", { recursive: true });
 
 const end = Date.now();
 
@@ -64,7 +62,6 @@ let sizeUnitIndex = 0;
 if(out.metafile?.outputs)
   for (const file of Object.keys(out.metafile.outputs))
     buildSize += out.metafile.outputs[file].bytes;
-// buildSize += minify_config.length;
 while (buildSize > 1024) {
   buildSize /= 1024;
   sizeUnitIndex++;
