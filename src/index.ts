@@ -1,7 +1,7 @@
 import { Client } from 'pg';
 import { QueueManager } from './queueManager';
 import { WebSrvManager } from './webserverHandle';
-import { captureException } from '@sentry/node-core';
+import { captureException } from '@sentry/node';
 
 const pgClient = new Client(process.env["PGSQL_CONN"]);
 const queueMGR = new QueueManager(pgClient);

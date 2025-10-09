@@ -2,7 +2,7 @@ import { createTransport, type Transporter } from "nodemailer";
 import { type Channel, type ChannelWrapper, connect } from "amqp-connection-manager";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { type IAmqpConnectionManager } from "amqp-connection-manager/dist/types/AmqpConnectionManager";
-import { logger, cron, captureException } from "@sentry/node-core";
+import { logger, cron, captureException } from "@sentry/node";
 import type { sendMailOpt, requestsTable } from "./Types";
 import type { Client } from "pg";
 import nCron from "node-cron";

@@ -3,7 +3,7 @@ import type { QueueManager } from "./queueManager";
 import type { NextFunction, Express, Request, Response } from "express";
 import type { authKeysTable } from "./Types";
 import ExpressInit, { json, static as fstatic } from "express";
-import { captureException, logger } from "@sentry/node-core";
+import { captureException, logger, setupExpressErrorHandler } from "@sentry/node";
 import { randomUUID } from "crypto";
 
 type requestType = {
@@ -48,6 +48,7 @@ export class WebSrvManager {
 
     this.express.use("/public", fstatic("public"));
 
+    setupExpressErrorHandler(this.express);
 
     this.express.listen(port, (err)=> {
       if(err) {

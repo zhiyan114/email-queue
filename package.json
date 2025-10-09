@@ -23,7 +23,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@sentry/node-core": "^10.17.0",
+    "@sentry/node": "^10.19.0",
     "amqp-connection-manager": "^5.0.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
