@@ -6,7 +6,7 @@
 
 # Shareable Values
 SRCENV=${ENVIRONMENT:=????}
-RELSTR="${SRCENV:0:4}-$(git rev-parse --short=7 HEAD)"
+RELSTR="${SRCENV:0:4}-${RAILWAY_GIT_COMMIT_SHA:0:7}"
 
 # Sentry Deploy Begin
 if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then

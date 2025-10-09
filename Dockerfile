@@ -1,5 +1,5 @@
 # Setup build image
-FROM node:22-bookworm-slim as buildenv
+FROM node:22-bookworm-slim AS buildenv
 WORKDIR /source/
 RUN npm install -g npm@latest
 
@@ -12,6 +12,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Setup Env Variables
+ARG RAILWAY_GIT_COMMIT_SHA
 ARG SENTRY_AUTH_TOKEN
 ARG SENTRY_ORG
 ARG SENTRY_PROJECT
@@ -28,23 +29,21 @@ ENV PORT={PORT}
 ENV PGSQL_CONN={PGSQL_CONN}
 ENV SMTP_CONN={SMTP_CONN}
 ENV AMQP_CONN={AMQP_CONN}
+ENV RAILWAY_GIT_COMMIT_SHA={RAILWAY_GIT_COMMIT_SHA}
 
 
 # Env Setup
 COPY tsconfig.json ./
 COPY scripts/ ./scripts
 RUN chmod +x ./scripts/*
-COPY prisma/ ./
 
 # Save commit hash to env
-COPY .git/ ./.git/
-RUN echo "COMMITHASH=$(git -C /source/ rev-parse HEAD)" >> .env_build
+RUN echo "COMMITHASH=$RAILWAY_GIT_COMMIT_SHA" >> .env_build
 
 # Pre-Build Hook
 RUN scripts/preHook.sh
 
 # Build the source
-RUN npx prisma generate
 COPY src/ ./src/
 COPY build.js ./build.js
 RUN npm run build

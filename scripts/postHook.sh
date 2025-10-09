@@ -6,7 +6,7 @@
 
 # Shareable Values
 SRCENV=${ENVIRONMENT:=????}
-RELSTR="${SRCENV:0:4}-$(git rev-parse --short=7 HEAD)"
+RELSTR="${SRCENV:0:4}-${RAILWAY_GIT_COMMIT_SHA:0:7}"
 
 
 # Sentry Deploy Ends
@@ -16,7 +16,7 @@ if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT"
   if [ -n "$RELEXIST" ]; then
     npx sentry-cli releases set-commits "$RELSTR" --auto
     npx sentry-cli releases finalize "$RELSTR"
-    npx sentry-cli deploys new -e "${SRCENV:0:4}" -r "$RELSTR" -n "$(git rev-parse --short=7 HEAD)"
+    npx sentry-cli deploys new -e "${SRCENV:0:4}" -r "$RELSTR" -n "${RAILWAY_GIT_COMMIT_SHA:0:7}"
     echo "Sentry Release Finalized for $RELSTR..."
   else
     echo "Sentry Release Cannot be Finalized due to missing pre-published release"
