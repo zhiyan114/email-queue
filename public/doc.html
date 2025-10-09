@@ -20,7 +20,7 @@
     const RNG=(m,n)=>Math.random()*(n-m)+n;
     window.onload = () => {
         window.ui = SwaggerUIBundle({
-            url: `https://api.mail.zhiyan114.com/public/swagger.yaml?${RNG(100000,1000000)}`,
+            url: `https://api.mail.zhiyan114.com/public/swagger.yml?${RNG(100000,1000000)}`,
             dom_id: '#swagger-ui',
         });
     };
