@@ -7,6 +7,7 @@ import type { sendMailOpt, requestsTable } from "./Types";
 import type { Client } from "pg";
 import nCron from "node-cron";
 import { type ConsumeMessage } from "amqplib";
+import { randomUUID } from "crypto";
 
 
 export class QueueManager {
@@ -57,7 +58,7 @@ export class QueueManager {
     });
   }
 
-  async queueMail(key_id: number, opt: sendMailOpt) {
+  async queueMail(key_id: number, opt: sendMailOpt, req_id?: string) {
     // Extra checks, but webserver should handle those before reaching here
     this.checkInit();
     if(!opt.text || !opt.html)
@@ -66,8 +67,9 @@ export class QueueManager {
       throw new QMGRExcept("Request cannot include both text and html format");
 
     // Add request to database
-    const res = await this.pgClient.query<requestsTable>("INSERT INTO requests (key_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *", [
+    const res = await this.pgClient.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [
       key_id,
+      req_id ?? randomUUID(),
       opt.from,
       opt.to,
       opt.subject,

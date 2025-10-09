@@ -4,6 +4,7 @@ import type { NextFunction, Express, Request, Response } from "express";
 import type { authKeysTable } from "./Types";
 import ExpressInit, { json } from "express";
 import { captureException, logger } from "@sentry/node-core";
+import { randomUUID } from "crypto";
 
 type requestType = {
   from?: string,
@@ -98,20 +99,20 @@ export class WebSrvManager {
     // Format Recipient data if the given req is string
     const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
 
-    const reqID: string[] = [];
+    const reqID = randomUUID();
     for(const recipient of recipients)
-      reqID.push((await this.queueMGR.queueMail(res.locals.userID, {
+      await this.queueMGR.queueMail(res.locals.userID, {
         from: fromSender!,
         to: recipient,
         subject: req.body.subject,
         text: req.body.text,
         html: req.body.text
-      })).rows[0].id.toString());
+      }, reqID);
 
-    logger.info("Key %d successfully queued email to %d recipients Req ID: %s", [res.locals.userID, recipients.length, reqID.join(",")]);
+    logger.info("Key %d successfully queued email to %d recipients Req ID: %s", [res.locals.userID, recipients.length, reqID]);
     return res.status(200).json({
       success: true,
-      reqID: reqID.join(","),
+      reqID: reqID,
       message: "Email successfully queued!"
     });
   }

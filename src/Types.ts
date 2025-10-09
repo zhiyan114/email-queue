@@ -16,6 +16,7 @@ export type authKeysTable = {
 export type requestsTable = {
   id: number,
   key_id: number,
+  req_id: string,
   mail_from: string,
   mail_to: string,
   mail_subject: string,
