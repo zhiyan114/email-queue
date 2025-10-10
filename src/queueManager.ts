@@ -37,7 +37,7 @@ export class QueueManager {
     /* Consumer Handler */
 
     // @NOTE: Implement more and use worker thread if queue grows...
-    this.channel.consume(this.queueName, this.processQueue, { prefetch: 10 });
+    this.channel.consume(this.queueName, this.processQueue.bind(this), { prefetch: 10 });
 
     /* Cron Jobs */
 
