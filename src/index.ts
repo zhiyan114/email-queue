@@ -13,5 +13,5 @@ pgClient.login().then(()=>{
     throw Error("Queue Manager Cannot Be Initialize: Missing SMTP_CONN or AMQP_CONN env variable");
 
   queueMGR.setup(process.env["SMTP_CONN"], process.env["AMQP_CONN"]);
-  webSrvMGR.setup(process.env["PORT"] ? parseInt(process.env["PORT"]) : 80);
+  webSrvMGR.setup(process.env["PORT"] ? parseInt(process.env["PORT"]) : 3000);
 }).catch(ex=>captureException(ex));
