@@ -1,14 +1,14 @@
-import { Client } from 'pg';
 import { QueueManager } from './queueManager';
 import { WebSrvManager } from './webserverHandle';
 import { captureException } from '@sentry/node';
+import { DatabaseManager } from './DatabaseManager';
 
-const pgClient = new Client(process.env["PGSQL_CONN"]);
+const pgClient = new DatabaseManager(process.env["PGSQL_CONN"] ?? "");
 const queueMGR = new QueueManager(pgClient);
 const webSrvMGR = new WebSrvManager(pgClient, queueMGR);
 
 
-pgClient.connect().then(()=>{
+pgClient.login().then(()=>{
   if(! process.env["SMTP_CONN"] || !process.env["AMQP_CONN"])
     throw Error("Queue Manager Cannot Be Initialize: Missing SMTP_CONN or AMQP_CONN env variable");
 

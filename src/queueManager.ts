@@ -4,10 +4,10 @@ import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { type IAmqpConnectionManager } from "amqp-connection-manager/dist/types/AmqpConnectionManager";
 import { logger, cron, captureException } from "@sentry/node";
 import type { sendMailOpt, requestsTable } from "./Types";
-import type { Client } from "pg";
 import nCron from "node-cron";
 import { type ConsumeMessage } from "amqplib";
 import { randomUUID } from "crypto";
+import { type DatabaseManager } from "./DatabaseManager";
 
 
 export class QueueManager {
@@ -16,13 +16,13 @@ export class QueueManager {
   private amqpCli?: IAmqpConnectionManager;
   private tempStorage: number[];
   private channel?: ChannelWrapper;
-  private pgClient: Client;
+  private pgMGR: DatabaseManager;
 
-  constructor(pgClient: Client, queueName?: string) {
+  constructor(pgMGR: DatabaseManager, queueName?: string) {
     // Used to store queue item in-case of AMQP downtime
     this.tempStorage = [];
     this.queueName = queueName ?? "email";
-    this.pgClient = pgClient;
+    this.pgMGR = pgMGR;
   }
 
   setup(smtpAuthStr: string, amqpAuthStr: string) {
@@ -67,7 +67,7 @@ export class QueueManager {
       throw new QMGRExcept("Request cannot include both text and html format");
 
     // Add request to database
-    const res = await this.pgClient.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [
+    const res = await this.pgMGR.pgClient.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [
       key_id,
       req_id ?? randomUUID(),
       opt.from,
@@ -88,7 +88,7 @@ export class QueueManager {
 
     try {
       const id = Number(req.content.toString("utf-8"));
-      const qData = await this.pgClient.query<requestsTable>("SELECT * FROM requests WHERE id=$1", [id]);
+      const qData = await this.pgMGR.pgClient.query<requestsTable>("SELECT * FROM requests WHERE id=$1", [id]);
 
       if(qData.rows.length === 0) {
         logger.error("Attempt to process request (%d) that exist in queue but not in the database", [id]);
@@ -115,7 +115,7 @@ export class QueueManager {
       logger.info("Mail %d has been successfully sent to the dest server", [id]);
 
       const time = Date.now();
-      const qUdRes = await this.pgClient.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
+      const qUdRes = await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
 
       if(!qUdRes.rowCount || qUdRes.rowCount < 1) {
         logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s", [id, time.toString()]);
@@ -131,7 +131,7 @@ export class QueueManager {
 
   // Handler to (cron) requeue failed job
   private async queueFailJob() {
-    const res = await this.pgClient.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
+    const res = await this.pgMGR.pgClient.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
     if(res.rows.length === 0)
       return;
 

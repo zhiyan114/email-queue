@@ -1,10 +1,10 @@
-import type { Client } from "pg";
 import type { QueueManager } from "./queueManager";
 import type { NextFunction, Express, Request, Response } from "express";
 import type { authKeysTable } from "./Types";
 import ExpressInit, { json, static as fstatic } from "express";
 import { captureException, logger, setupExpressErrorHandler } from "@sentry/node";
 import { randomUUID } from "crypto";
+import { type DatabaseManager } from "./DatabaseManager";
 
 type requestType = {
   from?: string,
@@ -29,11 +29,11 @@ type localPassType = {
 
 export class WebSrvManager {
 
-  private pgClient: Client;
+  private pgMGR: DatabaseManager;
   private queueMGR: QueueManager;
   private express: Express;
-  constructor(pgClient: Client, queueMGR: QueueManager) {
-    this.pgClient = pgClient;
+  constructor(pgMGR: DatabaseManager, queueMGR: QueueManager) {
+    this.pgMGR = pgMGR;
     this.queueMGR = queueMGR;
     this.express = ExpressInit();
   }
@@ -145,7 +145,7 @@ export class WebSrvManager {
     }
 
     // Check Authorization DB
-    const QRes = await this.pgClient.query<authKeysTable>("SELECT * from authKeys WHERE code=$1", [tokenKey]);
+    const QRes = await this.pgMGR.pgClient.query<authKeysTable>("SELECT * from authKeys WHERE code=$1", [tokenKey]);
     if(QRes.rows.length === 0) {
       logger.warn("Attempt to access service with invalid token: $s", [tokenKey]);
       return res.status(401).send("Unauthorized >:{");
