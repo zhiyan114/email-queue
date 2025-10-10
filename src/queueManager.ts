@@ -87,6 +87,10 @@ export class QueueManager {
   // Handler to process SMTP mail transport
   private async processQueue(req: ConsumeMessage) {
     this.checkInit();
+    if(!this.pgMGR.isConnected) {
+      logger.warn("processQueue: Waiting for pg to connect before processing job!");
+      await this.pgMGR.waitUntilConnected();
+    }
 
     try {
       const id = Number(req.content.toString("utf-8"));
@@ -133,6 +137,12 @@ export class QueueManager {
 
   // Handler to (cron) requeue failed job
   private async queueFailJob() {
+    this.checkInit();
+    if(!this.pgMGR.isConnected) {
+      logger.warn("processQueue: Waiting for pg to connect before processing job!");
+      await this.pgMGR.waitUntilConnected();
+    }
+
     const res = await this.pgMGR.pgClient.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
     if(res.rows.length === 0)
       return;

@@ -24,6 +24,13 @@ export class DatabaseManager {
     return this._isConnected;
   }
 
+  // Check isConnected every 3 seconds until DB is reconnected
+  async waitUntilConnected() {
+    if(this._isConnected)
+      return;
+    await setTimeout(3000);
+  }
+
   private async errorHandle(err: Error) {
     logger.error("Database thrownen an error! Endpoints are now inaccessible. Reconnect every 30 seconds!");
     captureEvent(err);
