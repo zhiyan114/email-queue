@@ -61,7 +61,7 @@ export class QueueManager {
   async queueMail(key_id: number, opt: sendMailOpt, req_id?: string) {
     // Extra checks, but webserver should handle those before reaching here
     this.checkInit();
-    if(!opt.text || !opt.html)
+    if(!opt.text && !opt.html)
       throw new QMGRExcept("Request missing either html or plaintext format");
     if(opt.text && opt.html)
       throw new QMGRExcept("Request cannot include both text and html format");
