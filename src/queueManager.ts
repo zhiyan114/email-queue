@@ -27,7 +27,7 @@ export class QueueManager {
 
   setup(smtpAuthStr: string, amqpAuthStr: string) {
     logger.info("Initialized queue Manager. Queue Name: %s", [this.queueName]);
-    this.mailTransport = createTransport(smtpAuthStr);
+    this.mailTransport = createTransport(smtpAuthStr, { secure: true });
     this.amqpCli = connect(amqpAuthStr);
     this.channel = this.amqpCli.createChannel({
       json: false,
