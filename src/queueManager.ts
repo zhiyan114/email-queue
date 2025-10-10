@@ -145,7 +145,7 @@ export class QueueManager {
   // Handler to (cron) clean-up job
   private async cleanOldJob() {
     const qRes = await this.pgMGR.pgClient.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
-    logger.info("Cleaned up %d requests (1 month old)", [qRes.rowCount]);
+    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount]);
   }
 
   // Actually queue the item
