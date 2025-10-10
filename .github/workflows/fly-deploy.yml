@@ -17,3 +17,7 @@ jobs:
       - run: flyctl deploy --remote-only --ha=false --build-arg ENVIRONMENT=$ENVIRONMENT --build-arg SENTRY_ORG=$SENTRY_ORG --build-arg SENTRY_PROJECT=$SENTRY_PROJECT --build-arg SENTRY_AUTH_TOKEN=$SENTRY_AUTH_TOKEN
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
