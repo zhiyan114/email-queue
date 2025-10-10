@@ -38,7 +38,7 @@ class MailService:
         if (baseURL):
             self.baseUrl = baseURL[:-1] if baseURL[-1] == "/" else baseURL
 
-    def sendMail(self, opt: sendMailOpt) -> mailResType:
+    def sendMail(self, opt: sendMailOpt) -> Union[mailResType, str]:
         # General Validation
         if (opt["from"] and not self.__validateMail(opt["from"])):
             raise Exception("sendMail: Invalid 'from' field")
@@ -51,10 +51,11 @@ class MailService:
 
         if (not opt["text"] and not opt["html"]):
             raise Exception("sendMail: Missing email body (either text or html is required)")
-        if (opt["text"] and opt["html"]):
+        if (opt.get("text", None) and opt.get("html", None)):
             raise Exception("sendMail: You cannot include both text and html email body")
-
-        return self.__transport("/requests", "POST", opt).json()
+        
+        tRes = self.__transport("/requests", "POST", opt)
+        return tRes.json() if tRes.status_code == 200 else tRes.text
 
     def __validateMail(self, input: str):
         # Check "Name <email@address.local>"
@@ -69,11 +70,11 @@ class MailService:
     def __transport(self, path: str, method: str, jsonData: dict):
         header = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer ${self.apiKey}"
+            "Authorization": f"Bearer {self.apiKey}"
         }
 
         match method.lower():
             case "post":
-                return requests.post(f"{self.baseUrl}{method}", headers=header, json=jsonData)
+                return requests.post(url=f"{self.baseUrl}{path}", headers=header, json=jsonData)
             case _:
                 raise Exception("SDK Error: Invalid/Unhandled HTTP method supplied")

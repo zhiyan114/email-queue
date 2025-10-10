@@ -44,7 +44,7 @@ export class MailService {
   }
 
   private async transport(path: string, method: string, jsonData?: string) {
-    return await fetch(`${jsonData}${path}`,{
+    return await fetch(`${this.baseUrl}${path}`,{
       method,
       headers: {
         'Content-Type': 'application/json',
