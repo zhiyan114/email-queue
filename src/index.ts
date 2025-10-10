@@ -9,7 +9,7 @@ const webSrvMGR = new WebSrvManager(pgClient, queueMGR);
 
 
 pgClient.login().then(()=>{
-  if(! process.env["SMTP_CONN"] || !process.env["AMQP_CONN"])
+  if(!process.env["SMTP_CONN"] || !process.env["AMQP_CONN"])
     throw Error("Queue Manager Cannot Be Initialize: Missing SMTP_CONN or AMQP_CONN env variable");
 
   queueMGR.setup(process.env["SMTP_CONN"], process.env["AMQP_CONN"]);
