@@ -139,7 +139,7 @@ export class QueueManager {
   private async queueFailJob() {
     this.checkInit();
     if(!this.pgMGR.isConnected) {
-      logger.warn("processQueue: Waiting for pg to connect before processing job!");
+      logger.warn("queueFailJob: Waiting for pg to connect before processing job!");
       await this.pgMGR.waitUntilConnected();
     }
 
