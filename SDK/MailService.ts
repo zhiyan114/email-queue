@@ -1,6 +1,6 @@
 type sendMailOpt = {
-  from: string;
-  to: string;
+  from?: string;
+  to: string | string[];
   subject: string;
   text?: string;
   html?: string;
@@ -30,6 +30,15 @@ export class MailService {
       throw new MailServiceExcept("sendMail missing both text and html");
     if(opt.text && opt.html)
       throw new MailServiceExcept("sendMail contains both text and html value, only one of them is allowed!");
+    
+    opt.to = (typeof(opt.to) === "string") ? opt.to.split(",") : opt.to;
+
+    // Email Validation
+    if(opt.from && !this.validateEmail(opt.from))
+      throw new MailServiceExcept("'from' field failed validation")
+    for(const to of opt.to)
+      if(!this.validateEmail(to))
+        throw new MailServiceExcept("one of the (only) 'to' field failed validation")
 
     return await (await this.transport("/requests", "POST", JSON.stringify(opt))).json();
   }
@@ -43,7 +52,18 @@ export class MailService {
       },
       body: jsonData
     });
+  }
 
+  private validateEmail(input: string) {
+    // Check "Name <email@address.local>"
+    if(/^[a-zA-Z0-9 ._'`-]+ <[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}>$/.test(input))
+      return true;
+
+    // Check "email@address.local"
+    if(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(input))
+      return true;
+
+    return false;
   }
 }
 
