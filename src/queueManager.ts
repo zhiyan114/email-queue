@@ -100,7 +100,7 @@ export class QueueManager {
       if(mailRes instanceof Error) {
         // Remote Mail Server reject request and should not be retried!
         logger.warn("Mail server unable to send mail to this request (and will not be retried): %d", [id]);
-        await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [Date(), mailRes.message, id]);
+        await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [Date.now()/1000, mailRes.message, id]);
         return this.channel?.nack(req, false, false);
       }
 
@@ -114,11 +114,11 @@ export class QueueManager {
 
       logger.info("Mail %d has been successfully sent to the dest server", [id]);
 
-      const time = Date();
+      const time = Date.now()/1000;
       const qUdRes = await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
 
       if(!qUdRes.rowCount || qUdRes.rowCount < 1) {
-        logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s)", [id, time.toString()]);
+        logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s)", [id, time]);
         return this.channel?.nack(req, false, false);
       }
 
