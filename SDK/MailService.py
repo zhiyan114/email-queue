@@ -56,7 +56,7 @@ class MailService:
 
         return self.__transport("/requests", "POST", opt).json()
 
-    def __validateMail(input: str):
+    def __validateMail(self, input: str):
         # Check "Name <email@address.local>"
         if (re.match("^[a-zA-Z0-9 ._'`-]+ <[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}>$", input)):
             return True
