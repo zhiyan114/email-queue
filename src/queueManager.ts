@@ -96,13 +96,13 @@ export class QueueManager {
         return;
       }
 
-      const mailRes = await this.mailTransport?.sendMail({
-        from: qData.rows[0].mail_from,
-        to: qData.rows[0].mail_to,
-        subject: qData.rows[0].mail_subject,
-        text: qData.rows[0].mail_text,
-        html: qData.rows[0].mail_html
-      });
+      const mailRes = await this.sendMail(qData.rows[0]);
+      if(mailRes instanceof Error) {
+        // Remote Mail Server reject request and should not be retried!
+        logger.warn("Mail server unable to send mail to this request (and will not be retried): %d", [id]);
+        await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [Date(), mailRes.message, id]);
+        return this.channel?.nack(req, false, false);
+      }
 
       // Check transit status
       if(!mailRes || mailRes.accepted.length < 1) {
@@ -114,11 +114,11 @@ export class QueueManager {
 
       logger.info("Mail %d has been successfully sent to the dest server", [id]);
 
-      const time = Date.now();
+      const time = Date();
       const qUdRes = await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
 
       if(!qUdRes.rowCount || qUdRes.rowCount < 1) {
-        logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s", [id, time.toString()]);
+        logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s)", [id, time.toString()]);
         return this.channel?.nack(req, false, false);
       }
 
@@ -155,6 +155,23 @@ export class QueueManager {
       throw new QMGRExcept("Missing transport, didnt setup?");
     if(!this.amqpCli)
       throw new QMGRExcept("Missing amqpCli, didnt setup?");
+  }
+
+  // Mailer method (to ensure mailing error are handled in a special case)
+  private async sendMail(req: requestsTable) {
+    try {
+      return await this.mailTransport?.sendMail({
+        from: req.mail_from,
+        to: req.mail_to,
+        subject: req.mail_subject,
+        text: req.mail_text,
+        html: req.mail_html
+      });
+    } catch(ex) {
+      if(ex instanceof Error)
+        return ex;
+      captureException(ex);
+    }
   }
 }
 

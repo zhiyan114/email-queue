@@ -14,6 +14,7 @@ CREATE TABLE requests (
   mail_text text,
   mail_html text,
   fulfilled timestamp,
+  lasterror text,
   FOREIGN KEY(key_id) REFERENCES authKeys(id),
   check(num_nonnulls(mail_text, mail_html) = 1)
 );
