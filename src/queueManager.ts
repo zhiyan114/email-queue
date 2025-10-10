@@ -142,8 +142,10 @@ export class QueueManager {
 
   // Actually queue the item
   private enque(id: number) {
-    if(!this.amqpCli?.isConnected())
+    if(!this.amqpCli?.isConnected()) {
+      logger.warn("item %d is currently in temp storage: AMQP server not connected", [id]);
       return this.tempStorage.push(id);
+    }
     this.channel?.sendToQueue(this.queueName, id.toString());
   }
 
