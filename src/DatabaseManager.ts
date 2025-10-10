@@ -24,16 +24,23 @@ export class DatabaseManager {
     return this._isConnected;
   }
 
+  // Check isConnected every 3 seconds until DB is reconnected
+  async waitUntilConnected() {
+    if(this._isConnected)
+      return;
+    await setTimeout(3000);
+  }
+
   private async errorHandle(err: Error) {
-    logger.error("Database thrownen an error! Endpoints are now inaccessible. Reconnect every 15 seconds!");
+    logger.error("Database thrownen an error! Endpoints are now inaccessible. Reconnect every 30 seconds!");
     captureEvent(err);
     this._isConnected = false;
     await this.connectMGR();
   }
 
   private async connectMGR() {
+    logger.info("Attempting PGSQL Connection...");
     while(true) {
-      logger.info("Attempting PGSQL Connection...");
       try {
         this._pgClient = new Client(this.pgCred);
         this._pgClient.on("error", this.errorHandle.bind(this));

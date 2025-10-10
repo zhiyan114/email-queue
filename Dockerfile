@@ -69,4 +69,4 @@ COPY --from=buildenv /source/.env_build /app/.env
 # Exposed web server port
 EXPOSE ${PORT}
 
-CMD node --max-old-space-size=150 -r ./sentryLoader.js ./index.js
+CMD node -r ./sentryLoader.js ./index.js
