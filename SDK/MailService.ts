@@ -24,7 +24,7 @@ export class MailService {
       this.baseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   }
 
-  async sendMail(opt: sendMailOpt): Promise<mailResType> {
+  async sendMail(opt: sendMailOpt): Promise<mailResType | string> {
     // Validation
     if(!opt.text && !opt.html)
       throw new MailServiceExcept("sendMail missing both text and html");
@@ -40,7 +40,8 @@ export class MailService {
       if(!this.validateEmail(to))
         throw new MailServiceExcept("one of the (only) 'to' field failed validation")
 
-    return await (await this.transport("/requests", "POST", JSON.stringify(opt))).json();
+    const res = await this.transport("/requests", "POST", JSON.stringify(opt))
+    return res.status === 200 ? await res.json() : await res.text();
   }
 
   private async transport(path: string, method: string, jsonData?: string) {
