@@ -101,13 +101,28 @@ export class WebSrvManager {
       });
     }
 
-    // Assuming it's formatted 'Name <email@address.local>', we'll only pull the Name part out
-
-    const fromName = req.body.from?.split("<")[0].trim() ?? "noreply";
-    const fromSender = senderAddr ? `${fromName} <${senderAddr}>` : req.body.from;
+    if(req.body.from && !this.validateEmail(req.body.from)) {
+      logger.warn("Key %d request contains invalid 'from' email format: %s", [res.locals.userID, req.body.from]);
+      return res.status(422).json({
+        success: false,
+        message: "Your 'from' email is not in the right format >:{"
+      });
+    }
 
     // Format Recipient data if the given req is string
     const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
+    for(const recipient of recipients)
+      if(!this.validateEmail(recipient)) {
+        logger.warn("Key %d request contains invalid 'to' email format: %s", [res.locals.userID, req.body.from]);
+        return res.status(422).json({
+          success: false,
+          message: "One of your (only) 'to' email has invalid format >:{"
+        });
+      }
+
+    // Assuming it's formatted 'Name <email@address.local>', we'll only pull the Name part out
+    const fromName = req.body.from?.split("<")[0].trim() ?? "noreply";
+    const fromSender = senderAddr ? `${fromName} <${senderAddr}>` : req.body.from;
 
     const reqID = randomUUID();
     for(const recipient of recipients)
@@ -163,5 +178,17 @@ export class WebSrvManager {
     // Pass information and complete the request
     res.locals.userID = QRes.rows[0].id;
     next();
+  }
+
+  private validateEmail(input: string) {
+    // Check "Name <email@address.local>"
+    if(/^[a-zA-Z0-9 ._'`-]+ <[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}>$/.test(input))
+      return true;
+
+    // Check "email@address.local"
+    if(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(input))
+      return true;
+
+    return false;
   }
 }

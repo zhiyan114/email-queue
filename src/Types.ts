@@ -23,4 +23,5 @@ export type requestsTable = {
   mail_text?: string,
   mail_html?: string,
   fulfilled?: Date,
+  lasterror?: string,
 }
