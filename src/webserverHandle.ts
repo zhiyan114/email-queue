@@ -116,7 +116,7 @@ export class WebSrvManager {
         to: recipient,
         subject: req.body.subject,
         text: req.body.text,
-        html: req.body.text
+        html: req.body.html
       }, reqID);
 
     logger.info("Key %d successfully queued email to %d recipients Req ID: %s", [res.locals.userID, recipients.length, reqID]);
