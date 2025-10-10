@@ -25,7 +25,8 @@ COPY scripts/ ./scripts
 RUN chmod +x ./scripts/*
 
 # Save commit hash to env
-RUN echo "COMMITHASH=$RAILWAY_GIT_COMMIT_SHA" >> .env_build
+COPY .git/ ./.git/
+RUN echo "COMMITHASH=$(git -C /source/ rev-parse HEAD)" >> .env_build
 
 # Pre-Build Hook
 RUN scripts/preHook.sh
