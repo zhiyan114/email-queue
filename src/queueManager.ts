@@ -102,6 +102,7 @@ export class QueueManager {
       if(mailRes instanceof Error) {
         if(mailRes.message.toLowerCase() === "connection timeout") {
           logger.warn("Mail Server timed out while attempting to process: %d", [id]);
+          await this.pgMGR.query("UPDATE requests SET lasterror='connection timeout' WHERE id=$1", [id]);
           return this.channel?.nack(req, false, false);
         }
         // Remote Mail Server reject request and should not be retried!
