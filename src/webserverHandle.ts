@@ -125,16 +125,22 @@ export class WebSrvManager {
     const fromSender = senderAddr ? `${fromName} <${senderAddr}>` : req.body.from;
 
     const reqID = randomUUID();
-    for(const recipient of recipients)
-      await this.queueMGR.queueMail(res.locals.userID, {
+    let failReq = 0;
+    for(const recipient of recipients) {
+      const fail = await this.queueMGR.queueMail(res.locals.userID, {
         from: fromSender!,
         to: recipient,
         subject: req.body.subject,
         text: req.body.text,
         html: req.body.html
       }, reqID);
+      if(!fail) {
+        logger.error("Failed to queue one of the request from %s due to bad DB connection", [reqID]);
+        failReq++;
+      }
+    }
 
-    logger.info("Key %d successfully queued email to %d recipients Req ID: %s", [res.locals.userID, recipients.length, reqID]);
+    logger.info("Key %d successfully queued email to %d recipients Req ID: %s", [res.locals.userID, recipients.length - failReq, reqID]);
     return res.status(200).json({
       success: true,
       reqID: reqID,
@@ -143,9 +149,7 @@ export class WebSrvManager {
   }
 
   private async authMiddleMan(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>, next: NextFunction) {
-
     const tokenHead = req.headers["authorization"]?.split(" ");
-
     if(!tokenHead || tokenHead.length !== 2) {
       logger.warn("Attempt to access service with missing authorization header");
       return res.status(401).send("Unauthorized >:{");
@@ -162,6 +166,12 @@ export class WebSrvManager {
 
     // Check Authorization DB
     const QRes = await this.pgMGR.query<authKeysTable>("SELECT * from authKeys WHERE code=$1", [tokenKey]);
+    if(!QRes)
+      return res.status(503).json({
+        success: false,
+        message: "Database is current down, try again later!"
+      });
+
     if(QRes.rows.length === 0) {
       logger.warn("Attempt to access service with invalid token: $s", [tokenKey]);
       return res.status(401).send("Unauthorized >:{");

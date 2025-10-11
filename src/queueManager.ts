@@ -9,18 +9,25 @@ import { type ConsumeMessage } from "amqplib";
 import { randomUUID } from "crypto";
 import { type DatabaseManager } from "./DatabaseManager";
 
+type ProcJobType = {
+  id: number,
+  timestamp?: Date,
+  failed?: string
+}
 
 export class QueueManager {
   private queueName: string;
   private mailTransport?: Transporter<SMTPTransport.SentMessageInfo>;
   private amqpCli?: IAmqpConnectionManager;
   private tempStorage: number[];
+  private processedJob: ProcJobType[];
   private channel?: ChannelWrapper;
   private pgMGR: DatabaseManager;
 
   constructor(pgMGR: DatabaseManager, queueName?: string) {
     // Used to store queue item in-case of AMQP downtime
     this.tempStorage = [];
+    this.processedJob = [];
     this.queueName = queueName ?? "email";
     this.pgMGR = pgMGR;
   }
@@ -80,7 +87,9 @@ export class QueueManager {
     ]);
 
     // Item to queue
-    this.enque(res.rows[0].id);
+    if(res)
+      this.enque(res.rows[0].id);
+
     return res;
   }
 
@@ -92,6 +101,11 @@ export class QueueManager {
       const id = Number(req.content.toString("utf-8"));
       const qData = await this.pgMGR.query<requestsTable>("SELECT * FROM requests WHERE id=$1", [id]);
 
+      if(!qData) {
+        logger.warn("Database Server timed out while attempting to process: %d (will be reprocessed later)", [id]);
+        return this.channel?.nack(req, false, false);
+      }
+
       if(qData.rows.length === 0) {
         logger.error("Attempt to process request (%d) that exist in queue but not in the database", [id]);
         this.channel?.nack(req, false, false);
@@ -99,19 +113,35 @@ export class QueueManager {
       }
 
       const mailRes = await this.sendMail(qData.rows[0]);
+      const time = new Date();
+
       if(mailRes instanceof Error) {
         if(mailRes.message.toLowerCase() === "connection timeout") {
           logger.warn("Mail Server timed out while attempting to process: %d", [id]);
-          await this.pgMGR.query("UPDATE requests SET lasterror='connection timeout' WHERE id=$1", [id]);
+          const uRes = await this.pgMGR.query("UPDATE requests SET lasterror='connection timeout' WHERE id=$1", [id]);
+          if(!uRes)
+            this.addUnmarkedJob({
+              id,
+              failed: mailRes.message,
+            });
+
           return this.channel?.nack(req, false, false);
         }
+
         // Remote Mail Server reject request and should not be retried!
         logger.warn("Mail server unable to send mail to this request (and will not be retried): %d (Reason: %s)", [id, mailRes.message]);
-        await this.pgMGR.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [new Date().toISOString(), mailRes.message, id]);
+        const uRes = await this.pgMGR.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [time.toISOString(), mailRes.message, id]);
+        if(!uRes)
+          this.addUnmarkedJob({
+            id,
+            timestamp: time,
+            failed: mailRes.message,
+          });
+
         return this.channel?.nack(req, false, false);
       }
 
-      // Check transit status
+      // Check transit status (idek why this is here, I'll just figure it out when sentry caught some from here LOL)
       if(!mailRes || mailRes.accepted.length < 1) {
         logger.error("sendMail reported failed mail transit", {
           mailObject: mailRes ? JSON.stringify(mailRes) : "undefined"
@@ -120,12 +150,19 @@ export class QueueManager {
       }
 
       logger.info("Mail %d has been successfully sent to the dest server", [id]);
+      const qUdRes = await this.pgMGR.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time.toISOString(), id]);
 
-      const time = new Date().toISOString();
-      const qUdRes = await this.pgMGR.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
+      if(!qUdRes) {
+        this.addUnmarkedJob({
+          id,
+          timestamp: time,
+        });
+        return this.channel?.nack(req, false, false);
+      }
+
 
       if(!qUdRes.rowCount || qUdRes.rowCount < 1) {
-        logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s)", [id, time]);
+        logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s)", [id, time.toISOString()]);
         return this.channel?.nack(req, false, false);
       }
 
@@ -140,7 +177,21 @@ export class QueueManager {
   private async queueFailJob() {
     this.checkInit();
 
+    // Update missing records (and remove from array IF successfully marked)
+    for(let i = 0; i < this.processedJob.length; i++) {
+      const job = this.processedJob[i];
+      const upRes = await this.pgMGR.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [job.timestamp?.toISOString(), job.failed, job.id]);
+      if(upRes) {
+        // Processed successfully
+        this.processedJob.splice(i,1);
+        logger.info("Unmarked job (%d) have now been successfully remarked!", [job.id]);
+      }
+    }
+
+    // Process incomplete Jobs
     const res = await this.pgMGR.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
+    if(!res)
+      return logger.warn("Failed Job cannot be fetched due to database downtime");
     if(res.rows.length === 0)
       return;
 
@@ -152,6 +203,9 @@ export class QueueManager {
   // Handler to (cron) clean-up job
   private async cleanOldJob() {
     const qRes = await this.pgMGR.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
+    if(!qRes)
+      return logger.warn("Fail to clean up old job due to database downtime");
+
     logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount]);
   }
 
@@ -187,6 +241,11 @@ export class QueueManager {
         return ex;
       captureException(ex);
     }
+  }
+
+  private addUnmarkedJob(req: ProcJobType) {
+    logger.warn("Job %d failed to be marked and will be done by the next cron job", [req.id]);
+    this.processedJob.push(req);
   }
 }
 
