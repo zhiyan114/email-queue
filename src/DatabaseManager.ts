@@ -12,10 +12,6 @@ export class DatabaseManager {
     });
   }
 
-  async login() {
-    await this._pgPool.connect();
-  }
-
   get pgPool() {
     return this._pgPool;
   }
