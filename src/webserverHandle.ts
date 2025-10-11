@@ -143,8 +143,6 @@ export class WebSrvManager {
   }
 
   private async authMiddleMan(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>, next: NextFunction) {
-    if(!this.pgMGR.isConnected)
-      return res.status(503).send("Database is currently down, request will not be accepted");
 
     const tokenHead = req.headers["authorization"]?.split(" ");
 
@@ -163,7 +161,7 @@ export class WebSrvManager {
     }
 
     // Check Authorization DB
-    const QRes = await this.pgMGR.pgClient.query<authKeysTable>("SELECT * from authKeys WHERE code=$1", [tokenKey]);
+    const QRes = await this.pgMGR.query<authKeysTable>("SELECT * from authKeys WHERE code=$1", [tokenKey]);
     if(QRes.rows.length === 0) {
       logger.warn("Attempt to access service with invalid token: $s", [tokenKey]);
       return res.status(401).send("Unauthorized >:{");
