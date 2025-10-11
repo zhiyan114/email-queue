@@ -3,7 +3,6 @@ import { setTimeout } from "timers/promises";
 
 export class DatabaseManager {
   private _pgPool: Pool;
-  private _isConnected: boolean;
   constructor(PgConnStr: string) {
     this._pgPool = new Pool({
       connectionString: PgConnStr,
@@ -11,7 +10,6 @@ export class DatabaseManager {
       idleTimeoutMillis: 60000,
       connectionTimeoutMillis: 10000,
     });
-    this._isConnected = false;
   }
 
   async login() {
