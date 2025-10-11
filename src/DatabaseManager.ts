@@ -32,7 +32,7 @@ export class DatabaseManager {
   }
 
   private async errorHandle(err: Error) {
-    logger.error("Database thrownen an error! Endpoints are now inaccessible. Reconnect every 30 seconds!");
+    logger.error("Database thrown an error! Endpoints are now inaccessible. Reconnect every 30 seconds!");
     captureEvent(err);
     this._isConnected = false;
     await this.connectMGR();
