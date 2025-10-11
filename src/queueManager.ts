@@ -100,8 +100,12 @@ export class QueueManager {
 
       const mailRes = await this.sendMail(qData.rows[0]);
       if(mailRes instanceof Error) {
+        if(mailRes.message.toLowerCase() === "connection timeout") {
+          logger.warn("Mail Server timed out while attempting to process: %d", [id]);
+          return this.channel?.nack(req, false, false);
+        }
         // Remote Mail Server reject request and should not be retried!
-        logger.warn("Mail server unable to send mail to this request (and will not be retried): %d", [id]);
+        logger.warn("Mail server unable to send mail to this request (and will not be retried): %d (Reason: %s)", [id, mailRes.message]);
         await this.pgMGR.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [new Date().toISOString(), mailRes.message, id]);
         return this.channel?.nack(req, false, false);
       }
