@@ -1,6 +1,5 @@
 import { QueueManager } from './queueManager';
 import { WebSrvManager } from './webserverHandle';
-import { captureException } from '@sentry/node';
 import { DatabaseManager } from './DatabaseManager';
 
 const pgClient = new DatabaseManager(process.env["PGSQL_CONN"] ?? "");
