@@ -1,57 +1,35 @@
-import { captureEvent, logger } from "@sentry/node";
-import { Client } from "pg";
+import { Pool, type QueryResult, type QueryResultRow } from "pg";
 import { setTimeout } from "timers/promises";
 
 export class DatabaseManager {
-  private pgCred: string;
-  private _pgClient: Client;
-  private _isConnected: boolean;
+  private _pgPool: Pool;
   constructor(PgConnStr: string) {
-    this.pgCred = PgConnStr;
-    this._pgClient = new Client();
-    this._isConnected = false;
+    this._pgPool = new Pool({
+      connectionString: PgConnStr,
+      max: 5,
+      idleTimeoutMillis: 60000,
+      connectionTimeoutMillis: 10000,
+    });
   }
 
   async login() {
-    await this.connectMGR();
+    await this._pgPool.connect();
   }
 
-  get pgClient() {
-    return this._pgClient;
+  get pgPool() {
+    return this._pgPool;
   }
 
-  get isConnected() {
-    return this._isConnected;
-  }
-
-  // Check isConnected every 3 seconds until DB is reconnected
-  async waitUntilConnected() {
-    if(this._isConnected)
-      return;
-    await setTimeout(3000);
-  }
-
-  private async errorHandle(err: Error) {
-    logger.error("Database thrownen an error! Endpoints are now inaccessible. Reconnect every 30 seconds!");
-    captureEvent(err);
-    this._isConnected = false;
-    await this.connectMGR();
-  }
-
-  private async connectMGR() {
-    logger.info("Attempting PGSQL Connection...");
-    while(true) {
-      try {
-        this._pgClient = new Client(this.pgCred);
-        this._pgClient.on("error", this.errorHandle.bind(this));
-        await this._pgClient.connect();
-
-        this._isConnected = true;
-        logger.info("PGSQL Connection Success...");
-        break;
-      } catch {
-        await new Promise<void>((res) => setTimeout(30000, res()));
+  // Timeout handled query
+  async query<T extends QueryResultRow>(query: string, param?: unknown[]): Promise<QueryResult<T>> {
+    try {
+      return await this._pgPool.query<T>(query, param);
+    } catch(ex) {
+      if(ex instanceof Error && ex.message.includes("ETIMEDOUT")) {
+        await setTimeout(1000); // wait for connection a bit
+        return await this.query<T>(query, param);
       }
+      throw ex;
     }
   }
 

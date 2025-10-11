@@ -69,7 +69,7 @@ export class QueueManager {
       throw new QMGRExcept("Request cannot include both text and html format");
 
     // Add request to database
-    const res = await this.pgMGR.pgClient.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [
+    const res = await this.pgMGR.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [
       key_id,
       req_id ?? randomUUID(),
       opt.from,
@@ -87,14 +87,10 @@ export class QueueManager {
   // Handler to process SMTP mail transport
   private async processQueue(req: ConsumeMessage) {
     this.checkInit();
-    if(!this.pgMGR.isConnected) {
-      logger.warn("processQueue: Waiting for pg to connect before processing job!");
-      await this.pgMGR.waitUntilConnected();
-    }
 
     try {
       const id = Number(req.content.toString("utf-8"));
-      const qData = await this.pgMGR.pgClient.query<requestsTable>("SELECT * FROM requests WHERE id=$1", [id]);
+      const qData = await this.pgMGR.query<requestsTable>("SELECT * FROM requests WHERE id=$1", [id]);
 
       if(qData.rows.length === 0) {
         logger.error("Attempt to process request (%d) that exist in queue but not in the database", [id]);
@@ -106,7 +102,7 @@ export class QueueManager {
       if(mailRes instanceof Error) {
         // Remote Mail Server reject request and should not be retried!
         logger.warn("Mail server unable to send mail to this request (and will not be retried): %d", [id]);
-        await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [new Date().toISOString(), mailRes.message, id]);
+        await this.pgMGR.query("UPDATE requests SET fulfilled=$1, lasterror=$2 WHERE id=$3", [new Date().toISOString(), mailRes.message, id]);
         return this.channel?.nack(req, false, false);
       }
 
@@ -121,7 +117,7 @@ export class QueueManager {
       logger.info("Mail %d has been successfully sent to the dest server", [id]);
 
       const time = new Date().toISOString();
-      const qUdRes = await this.pgMGR.pgClient.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
+      const qUdRes = await this.pgMGR.query("UPDATE requests SET fulfilled=$1 WHERE id=$2", [time, id]);
 
       if(!qUdRes.rowCount || qUdRes.rowCount < 1) {
         logger.warn("Mail request has been fulfilled but database failed to update 'fulfilled' column for $d (TS: %s)", [id, time]);
@@ -138,12 +134,8 @@ export class QueueManager {
   // Handler to (cron) requeue failed job
   private async queueFailJob() {
     this.checkInit();
-    if(!this.pgMGR.isConnected) {
-      logger.warn("processQueue: Waiting for pg to connect before processing job!");
-      await this.pgMGR.waitUntilConnected();
-    }
 
-    const res = await this.pgMGR.pgClient.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
+    const res = await this.pgMGR.query<requestsTable>("SELECT * FROM requests WHERE fulfilled IS NULL");
     if(res.rows.length === 0)
       return;
 
@@ -154,7 +146,7 @@ export class QueueManager {
 
   // Handler to (cron) clean-up job
   private async cleanOldJob() {
-    const qRes = await this.pgMGR.pgClient.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
+    const qRes = await this.pgMGR.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
     logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount]);
   }
 
