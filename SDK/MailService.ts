@@ -15,6 +15,14 @@ export type mailResType = {
   message: string,
 }
 
+export type mailGETResType = {
+  emails: {
+    id: number,
+    fulfilled: string | null,
+    lasterror: string | null,
+  }[]
+}
+
 export class MailService {
   private baseUrl = "https://api.mail.zhiyan114.com";
   private apiKey: string;
@@ -41,6 +49,11 @@ export class MailService {
         throw new MailServiceExcept("one of the (only) 'to' field failed validation")
 
     const res = await this.transport("/requests", "POST", JSON.stringify(opt))
+    return res.status === 200 ? await res.json() : await res.text();
+  }
+
+  async getMailStat(reqID: string): Promise<mailGETResType | string> {
+    const res = await this.transport(`/requests/${reqID}`, "GET")
     return res.status === 200 ? await res.json() : await res.text();
   }
 
