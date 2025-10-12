@@ -6,7 +6,7 @@ import re
 sendMailOpt = TypedDict(
     "sendMailOpt",
     {
-        "from": Optional[str],
+        "from": str,
         "to": Union[str, MutableSequence[str]],
         "subject": str,
         "text": Optional[str],
@@ -40,7 +40,7 @@ class MailService:
 
     def sendMail(self, opt: sendMailOpt) -> Union[mailResType, str]:
         # General Validation
-        if (opt["from"] and not self.__validateMail(opt["from"])):
+        if (not opt["from"] or not self.__validateMail(opt["from"])):
             raise Exception("sendMail: Invalid 'from' field")
         opt["to"] = opt["to"].split(",") if type(opt["to"]) is str else opt["to"]
         for to in opt["to"]:

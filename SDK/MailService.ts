@@ -1,5 +1,5 @@
 type sendMailOpt = {
-  from?: string;
+  from: string;
   to: string | string[];
   subject: string;
   text?: string;
@@ -34,7 +34,7 @@ export class MailService {
     opt.to = (typeof(opt.to) === "string") ? opt.to.split(",") : opt.to;
 
     // Email Validation
-    if(opt.from && !this.validateEmail(opt.from))
+    if(!opt.from || !this.validateEmail(opt.from))
       throw new MailServiceExcept("'from' field failed validation")
     for(const to of opt.to)
       if(!this.validateEmail(to))

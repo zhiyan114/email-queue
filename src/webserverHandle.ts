@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 import { type DatabaseManager } from "./DatabaseManager";
 
 type requestType = {
-  from?: string,
+  from: string,
   to: string | string[],
   subject: string,
   text?: string,
@@ -68,12 +68,11 @@ export class WebSrvManager {
 
   private async SubmitQueue(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>) {
     // Request Validation
-    const senderAddr = process.env["SENDER_ADDR"];
-    if(!req.body.from && senderAddr === null) {
-      logger.warn("Key %d request missing sender's name when ENV (SENDER_ADDR) is null/empty", [res.locals.userID]);
+    if(!req.body.from) {
+      logger.warn("Key %d request missing sender's name/email", [res.locals.userID]);
       return res.status(422).json({
         success: false,
-        message: "Server does not have configured fix address and requires 'from' field to be sent!"
+        message: "Missing 'from' field."
       });
     }
 
@@ -101,15 +100,14 @@ export class WebSrvManager {
       });
     }
 
-    if(req.body.from && !this.validateEmail(req.body.from)) {
+    // Email format validations
+    if(!this.validateEmail(req.body.from)) {
       logger.warn("Key %d request contains invalid 'from' email format: %s", [res.locals.userID, req.body.from]);
       return res.status(422).json({
         success: false,
         message: "Your 'from' email is not in the right format >:{"
       });
     }
-
-    // Format Recipient data if the given req is string
     const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
     for(const recipient of recipients)
       if(!this.validateEmail(recipient)) {
@@ -120,15 +118,11 @@ export class WebSrvManager {
         });
       }
 
-    // Assuming it's formatted 'Name <email@address.local>', we'll only pull the Name part out
-    const fromName = req.body.from?.split("<")[0].trim() ?? "noreply";
-    const fromSender = senderAddr ? `${fromName} <${senderAddr}>` : req.body.from;
-
     const reqID = randomUUID();
     let failReq = 0;
     for(const recipient of recipients) {
       const fail = await this.queueMGR.queueMail(res.locals.userID, {
-        from: fromSender!,
+        from: req.body.from,
         to: recipient,
         subject: req.body.subject,
         text: req.body.text,
