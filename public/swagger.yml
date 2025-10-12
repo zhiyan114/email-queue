@@ -9,7 +9,78 @@ info:
 servers:
   - url: https://api.mail.zhiyan114.com
 paths:
-  /requests:
+  /requests/{reqID}:
+    get:
+      summary: Retrieve email request by reqID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: reqID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful retrieval
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emails:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        fulfilled:
+                          type: string
+                          nullable: true
+                        lasterror:
+                          type: string
+                          nullable: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  message:
+                    type: string
+                    default: "Unauthorized >:{"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  message:
+                    type: string
+                    default: "You've been banned from accessing service: {reason}"
+        '503':
+          description: Database is currently down, no request can be fulfilled at this time!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    default: false
+                  message:
+                    type: string
+                    default: "Database is currently down, no request can be fulfilled at this time!"
+  /requests/:
     post:
       summary: Submit an email request to queue
       security:
@@ -43,14 +114,13 @@ paths:
                 properties:
                   reqID:
                     type: integer
-                    example: 00000000-0000-0000-0000-000000000000
+                    default: 00000000-0000-0000-0000-000000000000
                   success:
                     type: boolean
                     default: true
                   message:
                     type: string
                     default: "Email successfully queued!"
-                  
         '401':
           description: Unauthorized
           content:
@@ -77,8 +147,8 @@ paths:
                   message:
                     type: string
                     default: "You've been banned from accessing service: {reason}"
-        '422':
-          description: Unprocessable entity
+        '503':
+          description: Database is currently down, no request can be fulfilled at this time!
           content:
             application/json:
               schema:
@@ -89,7 +159,7 @@ paths:
                     default: false
                   message:
                     type: string
-                    default: "Server does not have configured fix address and requires 'from' field to be sent!"
+                    default: "Database is currently down, no request can be fulfilled at this time!"
 components:
   securitySchemes:
     bearerAuth:

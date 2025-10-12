@@ -1,5 +1,5 @@
 type sendMailOpt = {
-  from?: string;
+  from: string;
   to: string | string[];
   subject: string;
   text?: string;
@@ -13,6 +13,14 @@ export type mailResType = {
 } | {
   success: false,
   message: string,
+}
+
+export type mailGETResType = {
+  emails: {
+    id: number,
+    fulfilled: string | null,
+    lasterror: string | null,
+  }[]
 }
 
 export class MailService {
@@ -34,13 +42,18 @@ export class MailService {
     opt.to = (typeof(opt.to) === "string") ? opt.to.split(",") : opt.to;
 
     // Email Validation
-    if(opt.from && !this.validateEmail(opt.from))
+    if(!opt.from || !this.validateEmail(opt.from))
       throw new MailServiceExcept("'from' field failed validation")
     for(const to of opt.to)
       if(!this.validateEmail(to))
         throw new MailServiceExcept("one of the (only) 'to' field failed validation")
 
     const res = await this.transport("/requests", "POST", JSON.stringify(opt))
+    return res.status === 200 ? await res.json() : await res.text();
+  }
+
+  async getMailStat(reqID: string): Promise<mailGETResType | string> {
+    const res = await this.transport(`/requests/${reqID}`, "GET")
     return res.status === 200 ? await res.json() : await res.text();
   }
 

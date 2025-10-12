@@ -6,7 +6,7 @@ import re
 sendMailOpt = TypedDict(
     "sendMailOpt",
     {
-        "from": Optional[str],
+        "from": str,
         "to": Union[str, MutableSequence[str]],
         "subject": str,
         "text": Optional[str],
@@ -24,9 +24,16 @@ class mailResFail(TypedDict):
     success: Literal[False]
     message: str
 
+class mailGetResItem(TypedDict):
+    id: int
+    fulfilled: Optional[str]
+    lasterror: Optional[str]
+
+class mailGetRes(TypedDict):
+    emails: MutableSequence[mailGetResItem]
+
 
 mailResType = Union[mailResPass, mailResFail]
-
 
 # Actual Interactable class object #
 class MailService:
@@ -40,7 +47,7 @@ class MailService:
 
     def sendMail(self, opt: sendMailOpt) -> Union[mailResType, str]:
         # General Validation
-        if (opt["from"] and not self.__validateMail(opt["from"])):
+        if (not opt["from"] or not self.__validateMail(opt["from"])):
             raise Exception("sendMail: Invalid 'from' field")
         opt["to"] = opt["to"].split(",") if type(opt["to"]) is str else opt["to"]
         for to in opt["to"]:
@@ -57,6 +64,10 @@ class MailService:
         tRes = self.__transport("/requests", "POST", opt)
         return tRes.json() if tRes.status_code == 200 else tRes.text
 
+    def getMailStat(self, reqID: str) -> Union[mailGetRes, str]:
+        tRes = self.__transport(f"/requests/{reqID}", "GET")
+        return tRes.json() if tRes.status_code == 200 else tRes.text
+
     def __validateMail(self, input: str):
         # Check "Name <email@address.local>"
         if (re.match("^[a-zA-Z0-9 ._'`-]+ <[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}>$", input)):
@@ -67,7 +78,7 @@ class MailService:
             return True
         return False
 
-    def __transport(self, path: str, method: str, jsonData: dict):
+    def __transport(self, path: str, method: str, jsonData: dict | None = None):
         header = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.apiKey}"
@@ -76,5 +87,7 @@ class MailService:
         match method.lower():
             case "post":
                 return requests.post(url=f"{self.baseUrl}{path}", headers=header, json=jsonData)
+            case "get":
+                return requests.get(url=f"{self.baseUrl}{path}", headers=header)
             case _:
                 raise Exception("SDK Error: Invalid/Unhandled HTTP method supplied")

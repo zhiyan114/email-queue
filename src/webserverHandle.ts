@@ -1,31 +1,10 @@
 import type { QueueManager } from "./queueManager";
 import type { NextFunction, Express, Request, Response } from "express";
-import type { authKeysTable } from "./Types";
+import type { requestsTable, authKeysTable, requestType, responseType, localPassType, requestGETResType } from "./Types";
 import ExpressInit, { json, static as fstatic } from "express";
 import { captureException, logger, setupExpressErrorHandler } from "@sentry/node";
 import { randomUUID } from "crypto";
 import { type DatabaseManager } from "./DatabaseManager";
-
-type requestType = {
-  from?: string,
-  to: string | string[],
-  subject: string,
-  text?: string,
-  html?: string,
-}
-
-type responseType = {
-  success: true,
-  reqID: string,
-  message: string,
-} | {
-  success: false,
-  message: string,
-}
-
-type localPassType = {
-  userID: number
-}
 
 export class WebSrvManager {
 
@@ -46,8 +25,8 @@ export class WebSrvManager {
     this.express.route("/requests")
       .all(json({ strict: true }))
       .all(this.authMiddleMan.bind(this))
-      // .get(this.checkItemStatus) // Future Implementation: Ability to check specific item's queue status AND lastError Reason
       .post(this.SubmitQueue.bind(this));
+    this.express.get('/requests/:reqID', this.authMiddleMan.bind(this), this.checkItemStatus.bind(this));
 
     this.express.use("/public", fstatic("public"));
 
@@ -66,14 +45,28 @@ export class WebSrvManager {
     return res.status(200).send("Hello :3");
   }
 
+  private async checkItemStatus(req: Request<{reqID: string}, null, requestType>, res: Response<requestGETResType | string, localPassType>) {
+    logger.info("Key %d requested record for request: %s", [res.locals.userID, req.params.reqID]);
+    const qRes = await this.pgMGR.query<requestsTable>("SELECT * FROM requests WHERE key_id=$1 AND req_id=$2", [res.locals.userID, req.params.reqID]);
+    if(!qRes)
+      return res.status(503).send("Database is currently down, no request can be fulfilled at this time!");
+
+    return res.send({
+      emails: qRes.rows.map(data => ({
+        id: data.id,
+        fulfilled: data.fulfilled?.toString() ?? null,
+        lasterror: data.lasterror ?? null
+      }))
+    });
+  }
+
   private async SubmitQueue(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>) {
     // Request Validation
-    const senderAddr = process.env["SENDER_ADDR"];
-    if(!req.body.from && senderAddr === null) {
-      logger.warn("Key %d request missing sender's name when ENV (SENDER_ADDR) is null/empty", [res.locals.userID]);
+    if(!req.body.from) {
+      logger.warn("Key %d request missing sender's name/email", [res.locals.userID]);
       return res.status(422).json({
         success: false,
-        message: "Server does not have configured fix address and requires 'from' field to be sent!"
+        message: "Missing 'from' field."
       });
     }
 
@@ -101,15 +94,14 @@ export class WebSrvManager {
       });
     }
 
-    if(req.body.from && !this.validateEmail(req.body.from)) {
+    // Email format validations
+    if(!this.validateEmail(req.body.from)) {
       logger.warn("Key %d request contains invalid 'from' email format: %s", [res.locals.userID, req.body.from]);
       return res.status(422).json({
         success: false,
         message: "Your 'from' email is not in the right format >:{"
       });
     }
-
-    // Format Recipient data if the given req is string
     const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
     for(const recipient of recipients)
       if(!this.validateEmail(recipient)) {
@@ -120,15 +112,11 @@ export class WebSrvManager {
         });
       }
 
-    // Assuming it's formatted 'Name <email@address.local>', we'll only pull the Name part out
-    const fromName = req.body.from?.split("<")[0].trim() ?? "noreply";
-    const fromSender = senderAddr ? `${fromName} <${senderAddr}>` : req.body.from;
-
     const reqID = randomUUID();
     let failReq = 0;
     for(const recipient of recipients) {
       const fail = await this.queueMGR.queueMail(res.locals.userID, {
-        from: fromSender!,
+        from: req.body.from,
         to: recipient,
         subject: req.body.subject,
         text: req.body.text,
@@ -148,7 +136,7 @@ export class WebSrvManager {
     });
   }
 
-  private async authMiddleMan(req: Request<null, null, requestType>, res: Response<responseType | string, localPassType>, next: NextFunction) {
+  private async authMiddleMan(req: Request<unknown, null, requestType>, res: Response<responseType | string | unknown, localPassType>, next: NextFunction) {
     const tokenHead = req.headers["authorization"]?.split(" ");
     if(!tokenHead || tokenHead.length !== 2) {
       logger.warn("Attempt to access service with missing authorization header");
