@@ -45,11 +45,14 @@ export class WebSrvManager {
     return res.status(200).send("Hello :3");
   }
 
-  private async checkItemStatus(req: Request<{reqID: string}, null, requestType>, res: Response<requestGETResType | string, localPassType>) {
+  private async checkItemStatus(req: Request<{reqID: string}, null, requestType>, res: Response<requestGETResType | responseType, localPassType>) {
     logger.info("Key %d requested record for request: %s", [res.locals.userID, req.params.reqID]);
     const qRes = await this.pgMGR.query<requestsTable>("SELECT * FROM requests WHERE key_id=$1 AND req_id=$2", [res.locals.userID, req.params.reqID]);
     if(!qRes)
-      return res.status(503).send("Database is currently down, no request can be fulfilled at this time!");
+      return res.status(503).send({
+        success: false,
+        message: "Database is currently down, no request can be fulfilled at this time!"
+      });
 
     return res.send({
       emails: qRes.rows.map(data => ({
