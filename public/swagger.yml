@@ -98,6 +98,10 @@ paths:
                   type: array
                   items:
                     type: string
+                replyto:
+                  type: array
+                  items:
+                    type: string
                 subject:
                   type: string
                 text:

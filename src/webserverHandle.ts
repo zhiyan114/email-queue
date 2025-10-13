@@ -94,6 +94,18 @@ export class WebSrvManager {
       });
     }
 
+    // ReplyTo email validation
+    const ReplyTo = typeof(req.body.replyto) === "string" ? req.body.replyto.split(",") : req.body.replyto;
+    if(ReplyTo)
+      for(const repTo of ReplyTo)
+        if(!this.validateEmail(repTo)) {
+          logger.warn("Key %d request contains invalid ReplyTo Address", [res.locals.userID]);
+          return res.status(422).json({
+            success: false,
+            message: "One of your (only) 'replyto' field is invalid"
+          });
+        }
+
     // Email format validations
     if(!this.validateEmail(req.body.from)) {
       logger.warn("Key %d request contains invalid 'from' email format: %s", [res.locals.userID, req.body.from]);
@@ -102,6 +114,8 @@ export class WebSrvManager {
         message: "Your 'from' email is not in the right format >:{"
       });
     }
+
+    // Recipient format validations
     const recipients = (typeof(req.body.to) === "string") ? req.body.to.split(",") : req.body.to;
     for(const recipient of recipients)
       if(!this.validateEmail(recipient)) {
@@ -116,11 +130,9 @@ export class WebSrvManager {
     let failReq = 0;
     for(const recipient of recipients) {
       const fail = await this.queueMGR.queueMail(res.locals.userID, {
-        from: req.body.from,
+        ...req.body,
         to: recipient,
-        subject: req.body.subject,
-        text: req.body.text,
-        html: req.body.html
+        replyto: ReplyTo,
       }, reqID);
       if(!fail) {
         logger.error("Failed to queue one of the request from %s due to bad DB connection", [reqID]);

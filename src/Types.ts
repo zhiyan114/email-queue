@@ -1,6 +1,7 @@
 export type sendMailOpt = {
   from: string;
   to: string;
+  replyto?: string | string[];
   subject?: string;
   text?: string;
   html?: string;
@@ -19,6 +20,7 @@ export type requestsTable = {
   req_id: string,
   mail_from: string,
   mail_to: string,
+  mail_replyto?: string,
   mail_subject: string,
   mail_text?: string,
   mail_html?: string,
@@ -29,6 +31,7 @@ export type requestsTable = {
 export type requestType = {
   from: string,
   to: string | string[],
+  replyto?: string | string[],
   subject: string,
   text?: string,
   html?: string,
