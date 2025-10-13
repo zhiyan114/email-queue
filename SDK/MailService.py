@@ -8,6 +8,7 @@ sendMailOpt = TypedDict(
     {
         "from": str,
         "to": Union[str, MutableSequence[str]],
+        "replyto": Optional[Union[str, MutableSequence[str]]],
         "subject": str,
         "text": Optional[str],
         "html": Optional[str]
@@ -60,13 +61,19 @@ class MailService:
             raise Exception("sendMail: Missing email body (either text or html is required)")
         if (opt.get("text", None) and opt.get("html", None)):
             raise Exception("sendMail: You cannot include both text and html email body")
-        
+
+        opt["replyto"] = opt["replyto"].split(",") if type(opt["replyto"]) is str else opt["replyto"]
+        if opt["replyto"] is not None:
+            for rt in opt["replyto"]:
+                if (not self.__validateMail(rt)):
+                    raise Exception("sendMail: Invalid 'replyto' field was found")
+
         tRes = self.__transport("/requests", "POST", opt)
-        return tRes.json() if tRes.status_code == 200 else tRes.text
+        return tRes.json() if tRes.status_code in [200,422,503] else tRes.text
 
     def getMailStat(self, reqID: str) -> Union[mailGetRes, str]:
         tRes = self.__transport(f"/requests/{reqID}", "GET")
-        return tRes.json() if tRes.status_code == 200 else tRes.text
+        return tRes.json() if tRes.status_code in [200,422,503] else tRes.text
 
     def __validateMail(self, input: str):
         # Check "Name <email@address.local>"

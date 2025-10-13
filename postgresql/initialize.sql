@@ -10,6 +10,7 @@ CREATE TABLE requests (
   req_id varchar(36) NOT NULL,
   mail_from text NOT NULL,
   mail_to text not NULL,
+  mail_replyto text,
   mail_subject text not NULL,
   mail_text text,
   mail_html text,

@@ -76,11 +76,12 @@ export class QueueManager {
       throw new QMGRExcept("Request cannot include both text and html format");
 
     // Add request to database
-    const res = await this.pgMGR.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *", [
+    const res = await this.pgMGR.query<requestsTable>("INSERT INTO requests (key_id, req_id, mail_from, mail_to, mail_replyto, mail_subject, mail_text, mail_html) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *", [
       key_id,
       req_id ?? randomUUID(),
       opt.from,
       opt.to,
+      Array.isArray(opt.replyto) ? opt.replyto.join(',') : opt.replyto,
       opt.subject,
       opt.text,
       opt.html
@@ -232,6 +233,7 @@ export class QueueManager {
       return await this.mailTransport?.sendMail({
         from: req.mail_from,
         to: req.mail_to,
+        replyTo: req.mail_replyto,
         subject: req.mail_subject,
         text: req.mail_text,
         html: req.mail_html
