@@ -51,7 +51,6 @@ export class QueueManager {
     // Retry failed email job ever 1 hour
     const mainCron = cron.instrumentNodeCron(nCron);
     mainCron.schedule("0 * * * *", this.queueFailJob.bind(this), { name: "requeue-failed-jobs" });
-    mainCron.schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
 
     /* Events */
 
@@ -199,15 +198,6 @@ export class QueueManager {
     logger.info("Requeue %d failed jobs!", [res.rows.length]);
     for(const item of res.rows)
       this.enque(item.id);
-  }
-
-  // Handler to (cron) clean-up job
-  private async cleanOldJob() {
-    const qRes = await this.pgMGR.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
-    if(!qRes)
-      return logger.warn("Fail to clean up old job due to database downtime");
-
-    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount]);
   }
 
   // Actually queue the item

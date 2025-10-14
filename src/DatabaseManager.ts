@@ -1,6 +1,7 @@
-import { captureException, cron } from "@sentry/node";
+import { captureException, cron, logger } from "@sentry/node";
 import { Pool, type QueryResult, type QueryResultRow } from "pg";
 import nCron from "node-cron";
+import type { requestsTable } from "./Types";
 
 export class DatabaseManager {
   private _pgPool: Pool;
@@ -16,7 +17,9 @@ export class DatabaseManager {
 
     // Internal Connection Health Check
     this.healthCheck();
-    cron.instrumentNodeCron(nCron).schedule("* * * * *", this.healthCheck.bind(this), { name: "db-health-check" });
+    const mainCron = cron.instrumentNodeCron(nCron);
+    mainCron.schedule("* * * * *", this.healthCheck.bind(this), { name: "db-health-check" });
+    mainCron.schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
   }
 
   get pgPool() {
@@ -40,6 +43,15 @@ export class DatabaseManager {
       }
       throw ex;
     }
+  }
+
+  // Handler to (cron) clean-up job
+  private async cleanOldJob() {
+    const qRes = await this._pgPool.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
+    if(!qRes)
+      return logger.warn("Fail to clean up old job due to database downtime");
+
+    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount ? qRes.rowCount : 0]);
   }
 
   // Perodic DB Health Check
