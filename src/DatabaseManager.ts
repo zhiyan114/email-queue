@@ -51,7 +51,7 @@ export class DatabaseManager {
     if(!qRes)
       return logger.warn("Fail to clean up old job due to database downtime");
 
-    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount ? qRes.rowCount : 0]);
+    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount ? qRes.rowCount : -1]);
   }
 
   // Perodic DB Health Check
