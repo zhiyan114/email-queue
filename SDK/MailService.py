@@ -25,16 +25,19 @@ class mailResFail(TypedDict):
     success: Literal[False]
     message: str
 
+
 class mailGetResItem(TypedDict):
     id: int
     fulfilled: Optional[str]
     lasterror: Optional[str]
+
 
 class mailGetRes(TypedDict):
     emails: MutableSequence[mailGetResItem]
 
 
 mailResType = Union[mailResPass, mailResFail]
+
 
 # Actual Interactable class object #
 class MailService:
@@ -48,8 +51,11 @@ class MailService:
 
     def sendMail(self, opt: sendMailOpt) -> Union[mailResType, str]:
         # General Validation
-        if (not opt["from"] or not self.__validateMail(opt["from"])):
+        fromField = opt.get("from", None)
+        if (not fromField or not self.__validateMail(fromField)):
             raise Exception("sendMail: Invalid 'from' field")
+        if (not opt.get("to", None)):
+            raise Exception("sendMail: 'to' field is required")
         opt["to"] = opt["to"].split(",") if type(opt["to"]) is str else opt["to"]
         for to in opt["to"]:
             if (not self.__validateMail(to)):
@@ -57,13 +63,14 @@ class MailService:
         if (not opt["subject"]):
             raise Exception("sendMail: subject is required to avoid bad email delivery")
 
-        if (not opt["text"] and not opt["html"]):
+        if (opt.get("text", None) and not opt.get("html", None)):
             raise Exception("sendMail: Missing email body (either text or html is required)")
         if (opt.get("text", None) and opt.get("html", None)):
             raise Exception("sendMail: You cannot include both text and html email body")
 
-        opt["replyto"] = opt["replyto"].split(",") if type(opt["replyto"]) is str else opt["replyto"]
-        if opt["replyto"] is not None:
+        optReplyTo = opt.get("replyto", None)
+        if optReplyTo is not None:
+            opt["replyto"] = optReplyTo.split(",") if type(optReplyTo) is str else optReplyTo
             for rt in opt["replyto"]:
                 if (not self.__validateMail(rt)):
                     raise Exception("sendMail: Invalid 'replyto' field was found")
@@ -77,11 +84,11 @@ class MailService:
 
     def __validateMail(self, input: str):
         # Check "Name <email@address.local>"
-        if (re.match("^[a-zA-Z0-9 ._'`-]+ <[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}>$", input)):
+        if (re.match("^[a-zA-Z0-9 ._'`-]+ <[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}>$", input)):
             return True
 
         # Check "email@address.local"
-        if (re.match("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", input)):
+        if (re.match("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$", input)):
             return True
         return False
 
