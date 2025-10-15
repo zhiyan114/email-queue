@@ -1,4 +1,4 @@
-import { consoleLoggingIntegration, extraErrorDataIntegration, init } from "@sentry/node-core";
+import { extraErrorDataIntegration, init } from "@sentry/node-core";
 import { config } from "dotenv";
 
 config();
