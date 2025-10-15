@@ -1,4 +1,4 @@
-import { captureException, cron, logger } from "@sentry/node";
+import { captureException, cron, logger, captureCheckIn } from "@sentry/node";
 import { Pool, type QueryResult, type QueryResultRow } from "pg";
 import nCron from "node-cron";
 import type { requestsTable } from "./Types";
@@ -19,7 +19,8 @@ export class DatabaseManager {
     this.healthCheck();
     const mainCron = cron.instrumentNodeCron(nCron);
     mainCron.schedule("* * * * *", this.healthCheck.bind(this), { name: "db-health-check" });
-    mainCron.schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
+    // mainCron.schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
+    nCron.schedule("0 0 * * *", this.cleanOldJob.bind(this));
   }
 
   get pgPool() {
@@ -32,6 +33,10 @@ export class DatabaseManager {
 
   // Timeout handled query
   async query<T extends QueryResultRow>(query: string, param?: unknown[]): Promise<QueryResult<T> | undefined> {
+    const checkInId = captureCheckIn({
+      monitorSlug: "clean-old-jobs",
+      status: "in_progress",
+    });
     try {
       const res = await this._pgPool.query<T>(query, param);
       this._isConnected = true;
@@ -41,7 +46,18 @@ export class DatabaseManager {
         this._isConnected = false;
         return;
       }
+      captureCheckIn({
+        checkInId,
+        monitorSlug: "clean-old-jobs",
+        status: "error",
+      });
       throw ex;
+    } finally {
+      captureCheckIn({
+        checkInId,
+        monitorSlug: "clean-old-jobs",
+        status: "ok",
+      });
     }
   }
 
@@ -51,7 +67,7 @@ export class DatabaseManager {
     if(!qRes)
       return logger.warn("Fail to clean up old job due to database downtime");
 
-    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount ? qRes.rowCount : 0]);
+    logger.info("Cleaned up %d requests (at least 1 month old)", [qRes.rowCount ? qRes.rowCount : -1]);
   }
 
   // Perodic DB Health Check
