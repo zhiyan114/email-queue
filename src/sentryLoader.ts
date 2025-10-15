@@ -7,9 +7,6 @@ init({
   sendDefaultPii: true,
   maxValueLength: 1000,
   integrations: [
-    consoleLoggingIntegration({
-      levels: ["error", "warn", "log"],
-    }),
     extraErrorDataIntegration({
       depth: 5
     })
@@ -19,15 +16,15 @@ init({
     console.log("[%s]: %s", log.level, log.message);
     return log;
   },
-  ignoreErrors: [
-    "ETIMEDOUT",
-    "EADDRINUSE",
-    "ENOTFOUND",
-    "TimeoutError",
-    "AbortError",
-    "NetworkError",
-    "ECONNREFUSED",
-    "ECONNRESET",
-    "getaddrinfo"
-  ],
+  // ignoreErrors: [
+  //   "ETIMEDOUT",
+  //   "EADDRINUSE",
+  //   "ENOTFOUND",
+  //   "TimeoutError",
+  //   "AbortError",
+  //   "NetworkError",
+  //   "ECONNREFUSED",
+  //   "ECONNRESET",
+  //   "getaddrinfo"
+  // ],
 });
