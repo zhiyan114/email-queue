@@ -1,4 +1,4 @@
-import { extraErrorDataIntegration, init } from "@sentry/node-core";
+import { consoleLoggingIntegration, extraErrorDataIntegration, init } from "@sentry/node-core";
 import { config } from "dotenv";
 
 config();
@@ -7,6 +7,9 @@ init({
   sendDefaultPii: true,
   maxValueLength: 1000,
   integrations: [
+    consoleLoggingIntegration({
+      levels: ["error"],
+    }),
     extraErrorDataIntegration({
       depth: 5
     })
