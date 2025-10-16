@@ -17,9 +17,8 @@ export class DatabaseManager {
 
     // Internal Connection Health Check
     this.healthCheck();
-    const mainCron = cron.instrumentNodeCron(nCron);
-    mainCron.schedule("* * * * *", this.healthCheck.bind(this), { name: "db-health-check" });
-    mainCron.schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
+    cron.instrumentNodeCron(nCron).schedule("* * * * *", this.healthCheck.bind(this), { name: "db-health-check" });
+    cron.instrumentNodeCron(nCron).schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
   }
 
   get pgPool() {
