@@ -1,4 +1,4 @@
-import { captureException, cron, logger, } from "@sentry/node";
+import { cron, logger, } from "@sentry/node";
 import { Pool, type QueryResult, type QueryResultRow } from "pg";
 import nCron from "node-cron";
 import type { requestsTable } from "./Types";
@@ -16,8 +16,6 @@ export class DatabaseManager {
     });
 
     // Internal Connection Health Check
-    this.healthCheck();
-    cron.instrumentNodeCron(nCron).schedule("* * * * *", this.healthCheck.bind(this), { name: "db-health-check" });
     cron.instrumentNodeCron(nCron).schedule("0 0 * * *", this.cleanOldJob.bind(this), { name: "clean-old-jobs" });
   }
 
@@ -52,20 +50,6 @@ export class DatabaseManager {
       return logger.warn("Fail to clean up old job due to database downtime");
 
     logger.info("Cleaned up %s requests (at least 1 month old)", [qRes.rowCount?.toString() ?? "null"]);
-  }
-
-  // Perodic DB Health Check
-  private async healthCheck() {
-    try {
-      await this._pgPool.query("SELECT 1");
-      this._isConnected = true;
-    } catch(ex) {
-      if(ex instanceof Error && ex.message.includes("ETIMEDOUT")) {
-        this._isConnected = false;
-        return;
-      }
-      captureException(ex);
-    }
   }
 
 }
