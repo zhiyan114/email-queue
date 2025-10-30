@@ -5,7 +5,10 @@ type sendMailOpt = {
   subject: string;
   text?: string;
   html?: string;
-}
+} & (
+  { text: string; html?: never } |
+  { html: string; text?: never }
+)
 
 export type mailResType = {
   success: true,
