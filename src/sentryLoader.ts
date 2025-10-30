@@ -19,6 +19,11 @@ init({
     console.log("[%s]: %s", log.level, log.message);
     return log;
   },
+
+  _experiments: {
+    enableMetrics: true
+  }
+
   // ignoreErrors: [
   //   "ETIMEDOUT",
   //   "EADDRINUSE",

@@ -2,7 +2,7 @@ import { createTransport, type Transporter } from "nodemailer";
 import { type Channel, type ChannelWrapper, connect } from "amqp-connection-manager";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { type IAmqpConnectionManager } from "amqp-connection-manager/dist/types/AmqpConnectionManager";
-import { logger, cron, captureException } from "@sentry/node";
+import { logger, cron, captureException, metrics } from "@sentry/node";
 import type { sendMailOpt, requestsTable } from "./Types";
 import nCron from "node-cron";
 import { type ConsumeMessage } from "amqplib";
@@ -220,7 +220,7 @@ export class QueueManager {
   // Mailer method (to ensure mailing error are handled in a special case)
   private async sendMail(req: requestsTable) {
     try {
-      return await this.mailTransport?.sendMail({
+      const res = await this.mailTransport?.sendMail({
         from: req.mail_from,
         to: req.mail_to,
         replyTo: req.mail_replyto,
@@ -228,6 +228,14 @@ export class QueueManager {
         text: req.mail_text,
         html: req.mail_html
       });
+
+      metrics.count("mail.sent", 1, {
+        attributes: {
+          mailID: req.id,
+          reqID: req.req_id
+        }
+      });
+      return res;
     } catch(ex) {
       if(ex instanceof Error)
         return ex;
@@ -237,6 +245,11 @@ export class QueueManager {
 
   private addUnmarkedJob(req: ProcJobType) {
     logger.warn("Job %d failed to be marked and will be done by the next cron job", [req.id]);
+    metrics.count("mail.requeue", 1, {
+      attributes: {
+        mailID: req.id,
+      }
+    });
     this.processedJob.push(req);
   }
 }
