@@ -58,7 +58,7 @@ export class DatabaseManager {
 
     captureCheckIn({
       checkInId: chkID,
-      monitorSlug: "chkID",
+      monitorSlug: "clean-old-jobs",
       status: "ok"
     });
   }
