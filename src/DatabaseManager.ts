@@ -16,8 +16,9 @@ export class DatabaseManager {
     });
 
     // Internal Connection Health Check
-    const jobCheckin = cron.instrumentCron(CronJob, "clean-old-jobs");
-    new jobCheckin("0 0 * * *", this.cleanOldJob.bind(this));
+    new (cron.instrumentCron(CronJob, "clean-old-jobs"))
+    ("0 0 * * *", this.cleanOldJob.bind(this))
+      .start();
   }
 
   get pgPool() {
