@@ -49,8 +49,9 @@ export class QueueManager {
     /* Cron Jobs */
 
     // Retry failed email job ever 1 hour
-    const mainCron = cron.instrumentCron(CronJob, "requeue-failed-jobs");
-    new mainCron("0 * * * *", this.queueFailJob.bind(this));
+    new (cron.instrumentCron(CronJob, "requeue-failed-jobs"))
+    ("0 * * * *", this.queueFailJob.bind(this))
+      .start();
 
     /* Events */
 
