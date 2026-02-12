@@ -1,6 +1,6 @@
-import { captureCheckIn, logger, } from "@sentry/node";
+import { logger, cron } from "@sentry/node";
 import { Pool, type QueryResult, type QueryResultRow } from "pg";
-import { schedule } from "node-cron";
+import { CronJob } from "cron";
 import type { requestsTable } from "./Types";
 
 export class DatabaseManager {
@@ -16,7 +16,8 @@ export class DatabaseManager {
     });
 
     // Internal Connection Health Check
-    schedule("50 23 * * *", this.cleanOldJob.bind(this));
+    const jobCheckin = cron.instrumentCron(CronJob, "clean-old-jobs");
+    new jobCheckin("0 0 * * *", this.cleanOldJob.bind(this));
   }
 
   get pgPool() {
@@ -44,23 +45,12 @@ export class DatabaseManager {
 
   // Handler to (cron) clean-up job
   private async cleanOldJob() {
-    const chkID = captureCheckIn({
-      monitorSlug: "clean-old-jobs",
-      status: "in_progress"
-    });
-
     logger.info("cleanOldJob: Starting...");
     const qRes = await this.query<requestsTable>("DELETE FROM requests WHERE fulfilled < now() - interval '1 month'");
     if(!qRes)
       return logger.warn("Fail to clean up old job due to database downtime");
 
     logger.info("Cleaned up %s requests (at least 1 month old)", [qRes.rowCount?.toString() ?? "null"]);
-
-    captureCheckIn({
-      checkInId: chkID,
-      monitorSlug: "clean-old-jobs",
-      status: "ok"
-    });
   }
 
 }

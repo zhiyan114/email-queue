@@ -4,7 +4,7 @@ import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { type IAmqpConnectionManager } from "amqp-connection-manager/dist/types/AmqpConnectionManager";
 import { logger, cron, captureException, metrics } from "@sentry/node";
 import type { sendMailOpt, requestsTable } from "./Types";
-import nCron from "node-cron";
+import { CronJob } from "cron";
 import { type ConsumeMessage } from "amqplib";
 import { randomUUID } from "crypto";
 import { type DatabaseManager } from "./DatabaseManager";
@@ -49,8 +49,8 @@ export class QueueManager {
     /* Cron Jobs */
 
     // Retry failed email job ever 1 hour
-    const mainCron = cron.instrumentNodeCron(nCron);
-    mainCron.schedule("0 * * * *", this.queueFailJob.bind(this), { name: "requeue-failed-jobs" });
+    const mainCron = cron.instrumentCron(CronJob, "requeue-failed-jobs");
+    new mainCron("0 * * * *", this.queueFailJob.bind(this));
 
     /* Events */
 
