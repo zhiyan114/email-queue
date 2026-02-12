@@ -25,10 +25,10 @@
   "dependencies": {
     "@sentry/node": "^10.38.0",
     "amqp-connection-manager": "^5.0.0",
+    "cron": "^4.4.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "node-cron": "^4.2.1",
-    "nodemailer": "^7.0.7",
+    "nodemailer": "^8.0.1",
     "pg": "^8.16.3"
   }
 }
