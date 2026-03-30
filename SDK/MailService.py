@@ -75,12 +75,12 @@ class MailService:
                 if (not self.__validateMail(rt)):
                     raise Exception("sendMail: Invalid 'replyto' field was found")
 
-        tRes = self.__transport("/requests", "POST", opt)
-        return tRes.json() if tRes.status_code in [200,422,503] else tRes.text
+        with self.__transport("/requests", "POST", opt) as tRes:
+            return tRes.json() if tRes.status_code in [200, 422, 503] else tRes.text
 
     def getMailStat(self, reqID: str) -> Union[mailGetRes, str]:
-        tRes = self.__transport(f"/requests/{reqID}", "GET")
-        return tRes.json() if tRes.status_code in [200,422,503] else tRes.text
+        with self.__transport(f"/requests/{reqID}", "GET") as tRes:
+            return tRes.json() if tRes.status_code in [200, 422, 503] else tRes.text
 
     def __validateMail(self, input: str):
         # Check "Name <email@address.local>"
