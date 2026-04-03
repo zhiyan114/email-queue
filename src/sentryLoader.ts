@@ -15,14 +15,11 @@ init({
     })
   ],
   enableLogs: true,
+  enableMetrics: true,
   beforeSendLog: (log) => {
     console.log("[%s]: %s", log.level, log.message);
     return log;
   },
-
-  _experiments: {
-    enableMetrics: true
-  }
 
   // ignoreErrors: [
   //   "ETIMEDOUT",

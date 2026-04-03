@@ -1,7 +1,6 @@
 import { createTransport, type Transporter } from "nodemailer";
-import { type Channel, type ChannelWrapper, connect } from "amqp-connection-manager";
+import { type Channel, type ChannelWrapper, connect, type AmqpConnectionManager } from "amqp-connection-manager";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
-import { type IAmqpConnectionManager } from "amqp-connection-manager/dist/types/AmqpConnectionManager";
 import { logger, cron, captureException, metrics } from "@sentry/node";
 import type { sendMailOpt, requestsTable } from "./Types";
 import { CronJob } from "cron";
@@ -18,7 +17,7 @@ type ProcJobType = {
 export class QueueManager {
   private queueName: string;
   private mailTransport?: Transporter<SMTPTransport.SentMessageInfo>;
-  private amqpCli?: IAmqpConnectionManager;
+  private amqpCli?: AmqpConnectionManager;
   private tempStorage: number[];
   private processedJob: ProcJobType[];
   private channel?: ChannelWrapper;
